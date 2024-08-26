@@ -3,6 +3,7 @@ package com.kingpixel.cobblecalendarreward.models;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kingpixel.cobblecalendarreward.CobbleCalendarReward;
+import com.kingpixel.cobblecalendarreward.database.DatabaseClientFactory;
 import com.kingpixel.cobblecalendarreward.managers.DailyRewardsManager;
 import com.kingpixel.cobbleutils.util.Utils;
 import lombok.Getter;
@@ -57,8 +58,14 @@ public class UserInfo implements Serializable {
 
   public boolean canClaim() {
     LocalDate today = LocalDate.now();
-    return today.isAfter(dayclaimed) && today.minusDays(1).isEqual(dayclaimed);
+    return today.isAfter(dayclaimed);
   }
+
+  public boolean canClaim(int day) {
+    LocalDate today = LocalDate.now();
+    return today.isAfter(dayclaimed) && day == this.day + 1;
+  }
+
 
   public void writeInfo(UUID uuid) {
     File dir = Utils.getAbsolutePath(DailyRewardsManager.PATH_USER_INFO);
@@ -81,16 +88,34 @@ public class UserInfo implements Serializable {
   public void computeDay() {
     long daysBetween = ChronoUnit.DAYS.between(this.getDayclaimed(), this.getLastJoin());
 
-    if (daysBetween >= 2 || this.getDay() >= CobbleCalendarReward.config.maxDay() + 1) {
-      this.setDay((short) 0);
+    if (CobbleCalendarReward.config.isDebug()) {
+      CobbleCalendarReward.LOGGER.info("Days between: " + daysBetween);
     }
+
+    if (CobbleCalendarReward.config.isAutoReset()) {
+      if (this.getDay() >= CobbleCalendarReward.config.maxDay() + 1) {
+        reset(true);
+      } else if (daysBetween >= 2) {
+        reset(false);
+      }
+    } else {
+      if (this.getDay() >= CobbleCalendarReward.config.maxDay() + 1) {
+        reset(true);
+      }
+    }
+
 
     this.setLastJoin(LocalDate.now());
   }
 
-  public void reset() {
-    this.setDayclaimed(LocalDate.now().minusDays(1));
+  public void reset(boolean completeall) {
+    if (completeall) {
+      this.setDayclaimed(LocalDate.now());
+    } else {
+      this.setDayclaimed(LocalDate.now().minusDays(1));
+    }
     this.setDay((short) 0);
+    DatabaseClientFactory.databaseClient.updateUserInfo(this);
   }
 
   public void claim() {

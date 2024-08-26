@@ -17,6 +17,8 @@ public interface DatabaseClient {
 
   void updateUserInfo(ServerPlayerEntity player);
 
+  void updateUserInfo(UserInfo userInfo);
+
   void updateUserInfoLastJoin(ServerPlayerEntity player, LocalDate date);
 
   void updateUserInfoResetDay(ServerPlayerEntity player);

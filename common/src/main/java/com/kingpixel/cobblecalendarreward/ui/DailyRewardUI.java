@@ -26,12 +26,13 @@ public class DailyRewardUI {
       .builder(CobbleCalendarReward.config.getRows())
       .build();
 
+    UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
     CobbleCalendarReward.config.getRewards().forEach(rewards -> {
       if (!CobbleCalendarReward.config.isActive()) return;
-      UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
 
+      int day = rewards.getDay();
       boolean isClaimed = userInfo.getDay() >= rewards.getDay();
-      boolean canClaimToday = userInfo.canClaim();
+      boolean canClaimToday = userInfo.canClaim(day);
 
       ItemModel itemModel = isClaimed ? rewards.getClaimed() : rewards.getNotClaimed();
 

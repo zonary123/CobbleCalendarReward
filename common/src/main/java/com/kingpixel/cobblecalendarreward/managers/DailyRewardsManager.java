@@ -25,8 +25,8 @@ public class DailyRewardsManager {
   private final Map<UUID, UserInfo> userInfoMap = new HashMap<>();
 
   public void init(ServerPlayerEntity player) {
-    UUID playerUUID = player.getUuid();
     if (CobbleCalendarReward.config.getDatabase().getType() == DataBaseType.JSON) {
+      UUID playerUUID = player.getUuid();
       CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, playerUUID + ".json",
         fileContent -> {
           Gson gson = new GsonBuilder()

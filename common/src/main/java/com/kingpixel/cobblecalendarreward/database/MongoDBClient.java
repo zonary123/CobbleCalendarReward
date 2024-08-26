@@ -66,17 +66,24 @@ public class MongoDBClient implements DatabaseClient {
       userInfo = new UserInfo(player);
       mongoCollection.insertOne(userInfo);
     }
+    userInfo.computeDay();
+    userInfo.setLastJoin(LocalDate.now());
     return userInfo;
   }
 
   @Override public boolean canClaim(ServerPlayerEntity player) {
-    return getUserInfo(player).canClaim();
+    UserInfo userInfo = getUserInfo(player);
+    return userInfo.canClaim();
   }
 
   @Override public void updateUserInfo(ServerPlayerEntity player) {
     UserInfo userInfo = getUserInfo(player);
     userInfo.claim();
     mongoCollection.replaceOne(Filters.eq("uuid", player.getUuid()), userInfo);
+  }
+
+  @Override public void updateUserInfo(UserInfo userInfo) {
+    mongoCollection.replaceOne(Filters.eq("uuid", userInfo.getUuid()), userInfo);
   }
 
   @Override public void updateUserInfoLastJoin(ServerPlayerEntity player, LocalDate date) {
@@ -87,7 +94,7 @@ public class MongoDBClient implements DatabaseClient {
 
   @Override public void updateUserInfoResetDay(ServerPlayerEntity player) {
     UserInfo userInfo = getUserInfo(player);
-    userInfo.reset();
+    userInfo.reset(false);
     mongoCollection.replaceOne(Filters.eq("uuid", player.getUuid()), userInfo);
   }
 

@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 public class Config {
   private boolean debug;
   private boolean active;
+  private boolean autoReset;
   private String lang;
   private List<String> commands;
   private DataBaseConfig database;
@@ -34,6 +35,7 @@ public class Config {
   public Config() {
     this.debug = false;
     this.active = true;
+    this.autoReset = true;
     this.lang = "en";
     this.commands = new ArrayList<>();
     this.commands.add("calendar");
@@ -89,6 +91,7 @@ public class Config {
         this.debug = config.isDebug();
         this.lang = config.getLang();
         this.active = config.isActive();
+        this.autoReset = config.isAutoReset();
         this.database = config.getDatabase();
         this.rows = config.getRows();
         this.commands = config.getCommands();

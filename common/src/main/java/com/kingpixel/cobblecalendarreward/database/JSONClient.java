@@ -17,7 +17,9 @@ public class JSONClient implements DatabaseClient {
   }
 
   @Override public UserInfo getUserInfo(ServerPlayerEntity player) {
-    return CobbleCalendarReward.manager.getUserInfoMap().getOrDefault(player.getUuid(), new UserInfo(player));
+    UserInfo userInfo = CobbleCalendarReward.manager.getUserInfoMap().getOrDefault(player.getUuid(), new UserInfo(player));
+    userInfo.computeDay();
+    return userInfo;
   }
 
 
@@ -27,7 +29,8 @@ public class JSONClient implements DatabaseClient {
    LocalDate dayClaimed = userInfo.getDayclaimed();
     LocalDate today = LocalDate.now();
     return dayClaimed.getDayOfMonth() != today.getDayOfMonth() || dayClaimed.getMonth() != today.getMonth();*/
-    return getUserInfo(player).canClaim();
+    UserInfo userinfo = getUserInfo(player);
+    return userinfo.canClaim();
   }
 
 
@@ -37,16 +40,19 @@ public class JSONClient implements DatabaseClient {
     userInfo.writeInfo(player.getUuid());
   }
 
+  @Override public void updateUserInfo(UserInfo userInfo) {
+    userInfo.writeInfo(userInfo.getUuid());
+  }
+
 
   @Override public void updateUserInfoLastJoin(ServerPlayerEntity player, LocalDate date) {
     UserInfo userInfo = getUserInfo(player);
-    userInfo.computeDay();
     userInfo.writeInfo(player.getUuid());
   }
 
   @Override public void updateUserInfoResetDay(ServerPlayerEntity player) {
     UserInfo userInfo = getUserInfo(player);
-    userInfo.reset();
+    userInfo.reset(false);
     userInfo.writeInfo(player.getUuid());
   }
 
@@ -57,6 +63,7 @@ public class JSONClient implements DatabaseClient {
 
   @Override public void save() {
     CobbleCalendarReward.manager.getUserInfoMap().forEach((uuid, userInfo) -> {
+      userInfo.computeDay();
       userInfo.writeInfo(uuid);
     });
   }
