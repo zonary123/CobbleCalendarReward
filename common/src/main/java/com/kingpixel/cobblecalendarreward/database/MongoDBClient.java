@@ -89,12 +89,13 @@ public class MongoDBClient implements DatabaseClient {
   @Override public void updateUserInfoLastJoin(ServerPlayerEntity player, LocalDate date) {
     UserInfo userInfo = getUserInfo(player);
     userInfo.setLastJoin(date);
+    if (DatabaseClientFactory.databaseClient.getUserInfo(player).isFinish()) userInfo.reset(true);
     mongoCollection.replaceOne(Filters.eq("uuid", player.getUuid()), userInfo);
   }
 
   @Override public void updateUserInfoResetDay(ServerPlayerEntity player) {
     UserInfo userInfo = getUserInfo(player);
-    userInfo.reset(false);
+    userInfo.reset(userInfo.isFinish());
     mongoCollection.replaceOne(Filters.eq("uuid", player.getUuid()), userInfo);
   }
 

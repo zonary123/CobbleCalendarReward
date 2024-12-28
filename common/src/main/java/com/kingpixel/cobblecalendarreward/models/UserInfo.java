@@ -93,19 +93,27 @@ public class UserInfo implements Serializable {
     }
 
     if (CobbleCalendarReward.config.isAutoReset()) {
-      if (this.getDay() >= CobbleCalendarReward.config.maxDay() + 1) {
+      if (this.getDay() >= CobbleCalendarReward.config.maxDay()) {
         reset(true);
       } else if (daysBetween >= 2) {
         reset(false);
       }
     } else {
-      if (this.getDay() >= CobbleCalendarReward.config.maxDay() + 1) {
+      if (this.getDay() >= CobbleCalendarReward.config.maxDay()) {
         reset(true);
       }
     }
 
 
     this.setLastJoin(LocalDate.now());
+  }
+
+  public boolean isFinish() {
+    if (this.getDay() >= CobbleCalendarReward.config.maxDay()) {
+      reset(true);
+      return true;
+    }
+    return false;
   }
 
   public void reset(boolean completeall) {

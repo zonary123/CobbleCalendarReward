@@ -47,6 +47,7 @@ public class JSONClient implements DatabaseClient {
 
   @Override public void updateUserInfoLastJoin(ServerPlayerEntity player, LocalDate date) {
     UserInfo userInfo = getUserInfo(player);
+    if (DatabaseClientFactory.databaseClient.getUserInfo(player).isFinish()) userInfo.reset(true);
     userInfo.writeInfo(player.getUuid());
   }
 

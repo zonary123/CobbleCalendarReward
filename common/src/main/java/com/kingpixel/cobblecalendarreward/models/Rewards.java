@@ -1,15 +1,12 @@
 package com.kingpixel.cobblecalendarreward.models;
 
-import com.kingpixel.cobbleutils.Model.ItemChance;
+import com.kingpixel.cobbleutils.Model.AdvancedItemChance;
 import com.kingpixel.cobbleutils.Model.ItemModel;
-import com.kingpixel.cobbleutils.util.LuckPermsUtil;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import net.minecraft.server.network.ServerPlayerEntity;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,27 +21,7 @@ public class Rewards {
   private short slot;
   private ItemModel claimed;
   private ItemModel notClaimed;
-  private List<PermissionRewards> permissionRewards;
-
-  @Getter
-  @Setter
-  @Data
-  @ToString
-  public static class PermissionRewards {
-    private String permission;
-    private List<ItemChance> itemChances;
-
-    public PermissionRewards() {
-      this.permission = "";
-      this.itemChances = new ArrayList<>();
-      this.itemChances.addAll(ItemChance.defaultItemChances());
-    }
-
-    public PermissionRewards(String permission, List<ItemChance> itemChances) {
-      this.permission = permission;
-      this.itemChances = itemChances;
-    }
-  }
+  private AdvancedItemChance rewards;
 
 
   public Rewards() {
@@ -52,8 +29,7 @@ public class Rewards {
     this.slot = 0;
     this.claimed = new ItemModel("minecraft:minecart");
     this.notClaimed = new ItemModel("minecraft:chest_minecart");
-    this.permissionRewards = new ArrayList<>();
-    permissionRewards.add(new PermissionRewards());
+    this.rewards = new AdvancedItemChance();
   }
 
   public Rewards(short day) {
@@ -61,8 +37,7 @@ public class Rewards {
     this.slot = 0;
     this.claimed = new ItemModel("minecraft:minecart");
     this.notClaimed = new ItemModel("minecraft:chest_minecart");
-    this.permissionRewards = new ArrayList<>();
-    permissionRewards.add(new PermissionRewards());
+    this.rewards = new AdvancedItemChance();
   }
 
   public Rewards(int day, int slot) {
@@ -70,16 +45,7 @@ public class Rewards {
     this.slot = (short) slot;
     this.claimed = new ItemModel("minecraft:minecart", "Day " + day, List.of());
     this.notClaimed = new ItemModel("minecraft:chest_minecart", "Day " + day, List.of());
-    this.permissionRewards = new ArrayList<>();
-    permissionRewards.add(new PermissionRewards());
-  }
-
-  public void giveReward(ServerPlayerEntity player) {
-    permissionRewards.forEach(reward -> {
-      if (reward.getPermission().isEmpty() || LuckPermsUtil.checkPermission(player, reward.getPermission())) {
-        ItemChance.getAllRewards(reward.getItemChances(), player);
-      }
-    });
+    this.rewards = new AdvancedItemChance();
   }
 
 }

@@ -78,6 +78,14 @@ public class CobbleCalendarReward {
     LifecycleEvent.SERVER_STOPPING.register(server -> {
       scheduledTasks.forEach(task -> task.cancel(true));
       scheduledTasks.clear();
+      scheduler.shutdown();
+      try {
+        if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+          scheduler.shutdownNow();
+        }
+      } catch (InterruptedException ex) {
+        scheduler.shutdownNow(); // Interrupción forzada
+      }
       LOGGER.info("CobbleCalendarReward has been stopped.");
     });
 
@@ -97,7 +105,7 @@ public class CobbleCalendarReward {
 
   private static void tasks() {
     for (ScheduledFuture<?> task : scheduledTasks) {
-      task.cancel(false);
+      task.cancel(true);
     }
     scheduledTasks.clear();
 
@@ -105,8 +113,6 @@ public class CobbleCalendarReward {
       scheduler.scheduleAtFixedRate(() ->
           server.getPlayerManager().getPlayerList().forEach(CobbleCalendarReward::sendAlert),
         0, CobbleCalendarReward.config.getCheckReward(), TimeUnit.MINUTES);
-
-
     scheduledTasks.add(alertreward);
   }
 

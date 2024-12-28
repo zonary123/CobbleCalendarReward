@@ -1,6 +1,7 @@
 package com.kingpixel.cobblecalendarreward.ui;
 
 import ca.landonjw.gooeylibs2.api.UIManager;
+import ca.landonjw.gooeylibs2.api.button.FlagType;
 import ca.landonjw.gooeylibs2.api.button.GooeyButton;
 import ca.landonjw.gooeylibs2.api.page.GooeyPage;
 import ca.landonjw.gooeylibs2.api.template.types.ChestTemplate;
@@ -11,6 +12,7 @@ import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.cobbleutils.util.Utils;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -35,38 +37,50 @@ public class DailyRewardUI {
       boolean canClaimToday = userInfo.canClaim(day);
 
       ItemModel itemModel = isClaimed ? rewards.getClaimed() : rewards.getNotClaimed();
+      ItemStack itemStack = itemModel.getItemStack().copy();
+      if (canClaimToday) {
+        itemStack.addEnchantment(Enchantments.UNBREAKING, 1);
+      }
+      GooeyButton button = GooeyButton.builder()
+        .display(itemStack)
+        .hideFlags(FlagType.All, FlagType.Unbreakable)
+        .onClick(action -> {
+          switch (action.getClickType()) {
+            case SHIFT_RIGHT_CLICK, RIGHT_CLICK -> rewards.getRewards().openMenu(player);
+            default -> {
+              if (isClaimed) {
+                action.getPlayer().sendMessage(
+                  AdventureTranslator.toNative(
+                    CobbleCalendarReward.language.getMessageClaimed()
+                      .replace("%prefix%", CobbleCalendarReward.language.getPrefix())
+                      .replace("%day%", String.valueOf(rewards.getDay()))
+                  )
+                );
+                return; // Solo permitir si se puede reclamar y no ha sido reclamado
+              }
 
-      GooeyButton button = itemModel.getButton(action -> {
-        if (isClaimed) {
-          action.getPlayer().sendMessage(
-            AdventureTranslator.toNative(
-              CobbleCalendarReward.language.getMessageClaimed()
-                .replace("%prefix%", CobbleCalendarReward.language.getPrefix())
-                .replace("%day%", String.valueOf(rewards.getDay()))
-            )
-          );
-          return; // Solo permitir si se puede reclamar y no ha sido reclamado
-        }
+              if (!canClaimToday) {
+                action.getPlayer().sendMessage(
+                  AdventureTranslator.toNative(
+                    CobbleCalendarReward.language.getMessageVerySoon()
+                      .replace("%prefix%", CobbleCalendarReward.language.getPrefix())
+                      .replace("%day%", String.valueOf(rewards.getDay()))
+                  )
+                );
+                return; // Solo permitir si se puede reclamar y no ha sido reclamado
+              }
 
-        if (!canClaimToday) {
-          action.getPlayer().sendMessage(
-            AdventureTranslator.toNative(
-              CobbleCalendarReward.language.getMessageVerySoon()
-                .replace("%prefix%", CobbleCalendarReward.language.getPrefix())
-                .replace("%day%", String.valueOf(rewards.getDay()))
-            )
-          );
-          return; // Solo permitir si se puede reclamar y no ha sido reclamado
-        }
+              // Actualizar la información del usuario
+              DatabaseClientFactory.databaseClient.updateUserInfo(player);
 
-        // Actualizar la información del usuario
-        DatabaseClientFactory.databaseClient.updateUserInfo(player);
+              // Recompensas basadas en permisos
+              rewards.getRewards().giveRewards(player);
 
-        // Recompensas basadas en permisos
-        rewards.giveReward(player);
-
-        UIManager.openUIForcefully(action.getPlayer(), getPage(player));
-      });
+              UIManager.openUIForcefully(action.getPlayer(), getPage(player));
+            }
+          }
+        })
+        .build();
       template.set(rewards.getSlot(), button);
     });
 
