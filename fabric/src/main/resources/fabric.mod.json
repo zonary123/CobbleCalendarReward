@@ -11,7 +11,7 @@
   },
   "entrypoints": {
     "main": [
-      "com.kingpixel.cobblecalendarreward.fabric.CobbleCalendarRewardFabric"
+      "com.kingpixel.cobblecalendar.fabric.CobbleCalendarFabric"
     ]
   },
   "license": "${license}",
@@ -19,6 +19,7 @@
   "depends": {
     "fabricloader": "*",
     "fabric": "*",
-    "minecraft": "1.20.1"
+    "minecraft": "*",
+    "cobbleutils": "*"
   }
 }
