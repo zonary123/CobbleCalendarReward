@@ -1,6 +1,5 @@
 package com.kingpixel.cobblecalendar.command;
 
-import ca.landonjw.gooeylibs2.api.UIManager;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.command.base.CalendarResetCommand;
 import com.kingpixel.cobblecalendar.command.base.CalendarRewardCommand;
@@ -30,7 +29,7 @@ public class CommandTree {
           }
           if (!CobbleCalendar.config.isActive()) return 0;
           ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
-          UIManager.openUIForcefully(player, DailyRewardUI.getPage(player));
+          DailyRewardUI.open(player);
           return 1;
         });
 

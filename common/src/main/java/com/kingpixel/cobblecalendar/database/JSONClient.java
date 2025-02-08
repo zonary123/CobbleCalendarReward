@@ -28,9 +28,5 @@ public class JSONClient implements DatabaseClient {
   }
 
   @Override public void save() {
-    CobbleCalendar.manager.getUserInfoMap().forEach((uuid, userInfo) -> {
-      userInfo.computeDay();
-      userInfo.writeInfo(uuid);
-    });
   }
 }

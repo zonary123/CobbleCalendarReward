@@ -2,6 +2,7 @@ package com.kingpixel.cobblecalendar.config;
 
 import com.google.gson.Gson;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
+import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.util.Utils;
 import lombok.Getter;
 
@@ -16,6 +17,10 @@ public class Lang {
   private String messageCanClaim;
   private String messageClaimed;
   private String messageVerySoon;
+  private boolean global;
+  private ItemModel globalClaimed;
+  private ItemModel globalCanClaim;
+  private ItemModel globalNotClaimed;
 
   /**
    * Constructor to generate a file if one doesn't exist.
@@ -28,6 +33,10 @@ public class Lang {
     this.messageCanClaim = "%prefix% <#64de7c>You can claim rewards in <#ecca18>/calendar";
     this.messageClaimed = "%prefix% <#d65549>You have already claimed your rewards for today.";
     this.messageVerySoon = "%prefix% <#d65549>This reward will be available very soon.";
+    this.global = false;
+    this.globalClaimed = new ItemModel("minecraft:minecart");
+    this.globalCanClaim = new ItemModel("minecraft:minecart");
+    this.globalNotClaimed = new ItemModel("minecraft:chest_minecart");
   }
 
   /**
@@ -46,7 +55,10 @@ public class Lang {
         this.messageCanClaim = lang.getMessageCanClaim();
         this.messageClaimed = lang.getMessageClaimed();
         this.messageVerySoon = lang.getMessageVerySoon();
-
+        this.global = lang.isGlobal();
+        this.globalClaimed = lang.getGlobalClaimed();
+        this.globalCanClaim = lang.getGlobalCanClaim();
+        this.globalNotClaimed = lang.getGlobalNotClaimed();
         String data = gson.toJson(this);
         CompletableFuture<Boolean> futureWrite = Utils.writeFileAsync(CobbleCalendar.PATH_LANG, CobbleCalendar.config.getLang() +
             ".json",

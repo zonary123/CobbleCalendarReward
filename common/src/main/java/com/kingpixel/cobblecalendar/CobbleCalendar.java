@@ -75,7 +75,6 @@ public class CobbleCalendar {
 
     LifecycleEvent.SERVER_STOPPING.register(server -> {
       LOGGER.info("CobbleCalendar has been stopped.");
-      DatabaseClientFactory.databaseClient.save();
     });
 
     LifecycleEvent.SERVER_LEVEL_LOAD.register(level -> server = level.getServer());

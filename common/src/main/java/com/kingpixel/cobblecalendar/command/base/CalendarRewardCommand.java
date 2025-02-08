@@ -1,6 +1,5 @@
 package com.kingpixel.cobblecalendar.command.base;
 
-import ca.landonjw.gooeylibs2.api.UIManager;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.ui.DailyRewardUI;
 import com.kingpixel.cobbleutils.util.LuckPermsUtil;
@@ -36,7 +35,7 @@ public class CalendarRewardCommand implements Command<ServerCommandSource> {
                 .executes(context -> {
                   if (!CobbleCalendar.config.isActive()) return 0;
                   ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
-                  UIManager.openUIForcefully(player, DailyRewardUI.getPage(player));
+                  DailyRewardUI.open(player);
                   return 1;
                 })
             )

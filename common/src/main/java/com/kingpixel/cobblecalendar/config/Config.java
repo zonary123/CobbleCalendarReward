@@ -26,6 +26,7 @@ public class Config {
   private boolean debug;
   private boolean active;
   private boolean autoReset;
+  private boolean autoPlace;
   private String lang;
   private int resetMarginDays;
   private List<String> commands;
@@ -39,6 +40,7 @@ public class Config {
     this.debug = false;
     this.active = true;
     this.autoReset = true;
+    this.autoPlace = false;
     this.lang = "en";
     this.resetMarginDays = 3;
     this.commands = new ArrayList<>();
@@ -68,7 +70,7 @@ public class Config {
           }
           CobbleCalendar.config.rewards = null;
         }
-
+        CobbleCalendar.config.check();
         String data = gson.toJson(CobbleCalendar.config);
         CompletableFuture<Boolean> futureWrite = Utils.writeFileAsync(CobbleCalendar.PATH, "config.json",
           data);
@@ -91,6 +93,10 @@ public class Config {
     }
 
     CobbleCalendar.config.readRewards();
+  }
+
+  private void check() {
+
   }
 
   private void readRewards() {
@@ -155,8 +161,8 @@ public class Config {
       new Rewards(30, 29),
       new Rewards(31, 30)
     );
-    this.rewards = rewards;
-    for (Rewards reward : rewards) {
+    this.rewards = new ArrayList<>(rewards);
+    for (Rewards reward : this.rewards) {
       Utils.writeFileAsync(CobbleCalendar.PATH_REWARDS, reward.getDay() + ".json",
         Utils.newGson().toJson(reward));
     }
