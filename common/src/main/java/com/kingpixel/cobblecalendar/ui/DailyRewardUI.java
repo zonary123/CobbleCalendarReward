@@ -12,11 +12,10 @@ import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
 import com.kingpixel.cobblecalendar.models.Rewards;
 import com.kingpixel.cobblecalendar.models.UserInfo;
 import com.kingpixel.cobbleutils.Model.ItemModel;
-import com.kingpixel.cobbleutils.features.shops.Shop;
+import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.cobbleutils.util.Utils;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -33,7 +32,7 @@ public class DailyRewardUI {
       .builder(CobbleCalendar.config.getRows())
       .build();
 
-    new Shop.Rectangle(CobbleCalendar.config.getRows()).apply(template);
+    new Rectangle(CobbleCalendar.config.getRows()).apply(template);
 
     List<Button> buttons = new ArrayList<>();
 
@@ -46,28 +45,29 @@ public class DailyRewardUI {
       boolean canClaimToday = userInfo.canClaim(day);
 
       ItemModel itemModel;
-      if (CobbleCalendar.language.isGlobal()) {
+
+      itemModel = isClaimed ? reward.getClaimed() : reward.getNotClaimed();
+      if (itemModel.getItem().isEmpty()) {
         itemModel = isClaimed ? CobbleCalendar.language.getGlobalClaimed() : CobbleCalendar.language.getGlobalNotClaimed();
-      } else {
-        itemModel = isClaimed ? reward.getClaimed() : reward.getNotClaimed();
-      }
-      ItemStack itemStack = itemModel.getItemStack().copy();
-      if (canClaimToday) {
-        // Todo: add enchantments to the itemStack
-        if (CobbleCalendar.language.isGlobal()) {
-          itemStack = CobbleCalendar.language.getGlobalCanClaim().getItemStack().copy();
-        } else {
-          itemStack = reward.getCanClaim().getItemStack().copy();
-        }
-        itemStack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
       }
 
-      GooeyButton button = GooeyButton.builder()
-        .display(itemStack)
-        .onClick(action -> {
+      if (canClaimToday) {
+        itemModel = reward.getCanClaim();
+        if (reward.getCanClaim().getItem().isEmpty()) {
+          itemModel = CobbleCalendar.language.getGlobalCanClaim();
+        }
+      }
+
+      GooeyButton button = itemModel.getButton(1,
+        itemModel.getDisplayname().replace("%day%",
+          String.valueOf(reward.getDay())),
+        null,
+        action -> {
           if (!CobbleCalendar.config.isActive()) return;
           switch (action.getClickType()) {
-            case SHIFT_RIGHT_CLICK, RIGHT_CLICK -> reward.getRewards().openMenu(player);
+            case SHIFT_RIGHT_CLICK, RIGHT_CLICK -> reward.getRewards().openMenu(player, consumerTemplate -> {
+              },
+              close -> open(close.getPlayer()));
             default -> {
               UIManager.closeUI(player);
               if (isClaimed) {
@@ -98,8 +98,8 @@ public class DailyRewardUI {
               reward.getRewards().giveRewards(player);
             }
           }
-        })
-        .build();
+
+        });
       if (CobbleCalendar.config.isAutoPlace()) {
         buttons.add(button);
       } else {

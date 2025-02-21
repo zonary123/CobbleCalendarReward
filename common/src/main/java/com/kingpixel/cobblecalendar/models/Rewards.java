@@ -46,10 +46,17 @@ public class Rewards {
   public Rewards(int day, int slot) {
     this.day = (short) day;
     this.slot = (short) slot;
-    this.claimed = new ItemModel("minecraft:minecart", "Day " + day, List.of());
-    this.canClaim = new ItemModel("minecraft:minecart");
-    this.notClaimed = new ItemModel("minecraft:chest_minecart", "Day " + day, List.of());
+    this.claimed = new ItemModel("", "Day %day%", List.of(
+      "You have already claimed this reward."
+    ));
+    this.canClaim = new ItemModel("", "Day %day%", List.of(
+      "You can claim this reward."
+    ));
+    this.notClaimed = new ItemModel("", "Day %day%", List.of(
+      "This reward will be available very soon."
+    ));
     this.rewards = new AdvancedItemChance();
+    this.rewards.setTitle("Day " + day);
   }
 
   public void check() {
