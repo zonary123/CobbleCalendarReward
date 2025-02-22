@@ -86,12 +86,6 @@ public class CobbleCalendar {
       DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
       sendAlert(player);
     });
-
-    PlayerEvent.PLAYER_QUIT.register(player -> {
-      UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
-      userInfo.computeDay();
-      DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
-    });
   }
 
 

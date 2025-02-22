@@ -3,7 +3,6 @@ package com.kingpixel.cobblecalendar.managers;
 import com.google.gson.Gson;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.models.UserInfo;
-import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.cobbleutils.util.Utils;
 import lombok.Getter;
 import lombok.ToString;
@@ -22,22 +21,25 @@ public class DailyRewardsManager {
   private final Map<UUID, UserInfo> userInfoMap = new HashMap<>();
 
   public void init(ServerPlayerEntity player) {
-    if (CobbleCalendar.config.getDatabase().getType() == DataBaseType.JSON) {
-      UUID playerUUID = player.getUuid();
-      CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, playerUUID + ".json",
-        fileContent -> {
-          Gson gson = Utils.newWithoutSpacingGson();
-          UserInfo userInfo = gson.fromJson(fileContent, UserInfo.class);
-          userInfoMap.put(playerUUID, userInfo);
-        });
 
-      if (!futureRead.join()) {
+    UUID playerUUID = player.getUuid();
+    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, playerUUID + ".json",
+      fileContent -> {
+        Gson gson = Utils.newWithoutSpacingGson();
+        UserInfo userInfo = gson.fromJson(fileContent, UserInfo.class);
+        userInfoMap.put(playerUUID, userInfo);
+      });
+
+    futureRead.thenRun(() -> {
+      UserInfo userInfo = userInfoMap.get(playerUUID);
+      if (userInfo == null) {
         CobbleCalendar.LOGGER.info("No userinfo file found for " + CobbleCalendar.MOD_NAME + ". Attempting to generate one.");
-        UserInfo newUserInfo = new UserInfo(player);
-        userInfoMap.put(playerUUID, newUserInfo);
+        userInfo = new UserInfo(player);
+        userInfoMap.put(playerUUID, userInfo);
       }
-      userInfoMap.get(playerUUID).writeInfo(playerUUID);
-    }
+      userInfo.writeInfo(playerUUID);
+    }).join();
+
   }
 
 

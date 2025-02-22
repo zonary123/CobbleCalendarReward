@@ -28,13 +28,6 @@ public class UserInfo implements Serializable {
   private long dayclaimed;
   private long lastJoin;
 
-  public UserInfo() {
-    this.uuid = UUID.randomUUID();
-    this.name = "";
-    this.day = 0;
-    this.dayclaimed = LocalDate.now().toEpochDay();
-    this.lastJoin = LocalDate.now().toEpochDay();
-  }
 
   public UserInfo(ServerPlayerEntity player) {
     this.uuid = player.getUuid();
@@ -42,14 +35,6 @@ public class UserInfo implements Serializable {
     this.day = 0;
     this.dayclaimed = LocalDate.now().minusDays(1).toEpochDay();
     this.lastJoin = LocalDate.now().toEpochDay();
-  }
-
-  public UserInfo(UUID uuid, String name, short day, LocalDate dayclaimed, LocalDate lastJoin) {
-    this.uuid = uuid;
-    this.name = name;
-    this.day = day;
-    this.dayclaimed = dayclaimed.toEpochDay();
-    this.lastJoin = lastJoin.toEpochDay();
   }
 
   public boolean canClaim() {
@@ -97,14 +82,6 @@ public class UserInfo implements Serializable {
     }
 
     this.setLastJoin(LocalDate.now().toEpochDay());
-  }
-
-  public boolean isFinish() {
-    if (this.getDay() >= CobbleCalendar.config.maxDay()) {
-      reset(true);
-      return true;
-    }
-    return false;
   }
 
   public void reset(boolean completeall) {
