@@ -15,8 +15,6 @@ import org.bson.UuidRepresentation;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
-import java.time.LocalDate;
-
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -67,7 +65,6 @@ public class MongoDBClient implements DatabaseClient {
       mongoCollection.insertOne(userInfo);
     }
     userInfo.computeDay();
-    userInfo.setLastJoin(LocalDate.now().toEpochDay());
     return userInfo;
   }
 

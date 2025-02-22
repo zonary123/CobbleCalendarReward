@@ -35,7 +35,6 @@ public class DailyRewardsManager {
         CobbleCalendar.LOGGER.info("No userinfo file found for " + CobbleCalendar.MOD_NAME + ". Attempting to generate one.");
         UserInfo newUserInfo = new UserInfo(player);
         userInfoMap.put(playerUUID, newUserInfo);
-        newUserInfo.writeInfo(playerUUID);
       }
       userInfoMap.get(playerUUID).writeInfo(playerUUID);
     }

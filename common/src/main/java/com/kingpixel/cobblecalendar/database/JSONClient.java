@@ -15,14 +15,13 @@ public class JSONClient implements DatabaseClient {
   }
 
   @Override public UserInfo getUserInfo(ServerPlayerEntity player) {
-    UserInfo userInfo = CobbleCalendar.manager.getUserInfoMap().getOrDefault(player.getUuid(), new UserInfo(player));
-    return userInfo;
+    CobbleCalendar.manager.init(player);
+    return CobbleCalendar.manager.getUserInfoMap().getOrDefault(player.getUuid(), new UserInfo(player));
   }
 
   @Override public void updateUserInfo(UserInfo userInfo) {
     userInfo.writeInfo(userInfo.getUuid());
   }
-
 
   @Override public void disconnect() {
   }

@@ -1,6 +1,5 @@
 package com.kingpixel.cobblecalendar.models;
 
-import com.google.gson.Gson;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
 import com.kingpixel.cobblecalendar.managers.DailyRewardsManager;
@@ -11,8 +10,6 @@ import lombok.ToString;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -72,12 +69,8 @@ public class UserInfo implements Serializable {
     }
 
     File file = new File(dir, uuid.toString() + ".json");
-    try (FileWriter writer = new FileWriter(file)) {
-      Gson gson = Utils.newWithoutSpacingGson();
-      gson.toJson(this, writer);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+
+    Utils.writeFileAsync(file, Utils.newWithoutSpacingGson().toJson(this));
   }
 
   public void computeDay() {

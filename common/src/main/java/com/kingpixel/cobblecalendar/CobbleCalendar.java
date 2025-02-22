@@ -8,7 +8,8 @@ import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
 import com.kingpixel.cobblecalendar.managers.DailyRewardsManager;
 import com.kingpixel.cobblecalendar.models.UserInfo;
 import com.kingpixel.cobblecalendar.utils.UtilsLogger;
-import com.kingpixel.cobbleutils.util.AdventureTranslator;
+import com.kingpixel.cobbleutils.util.PlayerUtils;
+import com.kingpixel.cobbleutils.util.TypeMessage;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -80,7 +81,6 @@ public class CobbleCalendar {
     LifecycleEvent.SERVER_LEVEL_LOAD.register(level -> server = level.getServer());
 
     PlayerEvent.PLAYER_JOIN.register(player -> {
-      manager.init(player);
       UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
       userInfo.computeDay();
       DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
@@ -98,23 +98,23 @@ public class CobbleCalendar {
   private static void tasks() {
     if (alertReward != null) alertReward.setExpired();
 
+    long interval = 20L * 60 * config.getCheckReward();
     alertReward = Task.builder()
       .execute(() -> server.getPlayerManager().getPlayerList().forEach(CobbleCalendar::sendAlert))
-      .interval(20L * 60 * config.getCheckReward())
+      .interval(interval)
       .infinite()
       .build();
-
 
   }
 
   private static void sendAlert(ServerPlayerEntity player) {
     UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
     if (userInfo.canClaim()) {
-      player.sendMessage(
-        AdventureTranslator.toNative(
-          language.getMessageCanClaim()
-            .replace("%prefix%", language.getPrefix())
-        )
+      PlayerUtils.sendMessage(
+        player,
+        language.getMessageCanClaim(),
+        language.getPrefix(),
+        TypeMessage.CHAT
       );
     }
   }
