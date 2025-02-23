@@ -64,11 +64,11 @@ public class MongoDBClient implements DatabaseClient {
       userInfo = new UserInfo(player);
       mongoCollection.insertOne(userInfo);
     }
-    userInfo.computeDay();
+    userInfo.computeDay(player);
     return userInfo;
   }
 
-  @Override public void updateUserInfo(UserInfo userInfo) {
+  @Override public void updateUserInfo(ServerPlayerEntity player, UserInfo userInfo) {
     mongoCollection.replaceOne(Filters.eq("uuid", userInfo.getUuid()), userInfo);
   }
 

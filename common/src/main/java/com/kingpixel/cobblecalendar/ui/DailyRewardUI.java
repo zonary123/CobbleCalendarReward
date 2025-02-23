@@ -93,7 +93,7 @@ public class DailyRewardUI {
               }
 
               userInfo.claim();
-              DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
+              DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
               // Recompensas basadas en permisos
               reward.getRewards().giveRewards(player);
             }

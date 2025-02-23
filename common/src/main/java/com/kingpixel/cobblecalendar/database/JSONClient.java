@@ -21,9 +21,9 @@ public class JSONClient implements DatabaseClient {
     return CobbleCalendar.manager.getUserInfoMap().get(player.getUuid());
   }
 
-  @Override public void updateUserInfo(UserInfo userInfo) {
+  @Override public void updateUserInfo(ServerPlayerEntity player, UserInfo userInfo) {
     if (userInfo == null) return;
-    userInfo.writeInfo(userInfo.getUuid());
+    userInfo.writeInfo(player);
   }
 
   @Override public void disconnect() {

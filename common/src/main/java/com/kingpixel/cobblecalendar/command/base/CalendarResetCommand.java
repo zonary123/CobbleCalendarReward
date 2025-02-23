@@ -56,9 +56,9 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
 
   private static void reset(ServerPlayerEntity player) {
     UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
-    userInfo.reset(true);
+    userInfo.reset(player, true);
     userInfo.setDayclaimed(0);
-    DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
+    DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
   }
 
   @Override

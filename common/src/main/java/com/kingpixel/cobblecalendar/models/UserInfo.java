@@ -47,18 +47,17 @@ public class UserInfo implements Serializable {
     return today.isAfter(LocalDate.ofEpochDay(dayclaimed)) && day == this.day + 1;
   }
 
-  public void writeInfo(UUID uuid) {
-    File dir = Utils.getAbsolutePath(DailyRewardsManager.PATH_USER_INFO);
-    if (!dir.exists()) {
-      dir.mkdirs();
+  public void writeInfo(ServerPlayerEntity player) {
+
+    File folder = Utils.getAbsolutePath(DailyRewardsManager.PATH_USER_INFO);
+    if (!folder.exists()) {
+      folder.mkdirs();
     }
 
-    File file = new File(dir, uuid.toString() + ".json");
-
-    Utils.writeFileAsync(file, Utils.newWithoutSpacingGson().toJson(this));
+    Utils.writeFileAsync(DailyRewardsManager.PATH_USER_INFO, player.getUuidAsString() + ".json", Utils.newWithoutSpacingGson().toJson(this));
   }
 
-  public void computeDay() {
+  public void computeDay(ServerPlayerEntity player) {
     LocalDate dayClaimedDate = LocalDate.ofEpochDay(this.dayclaimed);
     LocalDate lastJoinDate = LocalDate.ofEpochDay(this.lastJoin);
     long daysBetween = ChronoUnit.DAYS.between(dayClaimedDate, lastJoinDate);
@@ -78,20 +77,20 @@ public class UserInfo implements Serializable {
     }
 
     if (shouldReset) {
-      reset(this.getDay() >= CobbleCalendar.config.maxDay());
+      reset(player, this.getDay() >= CobbleCalendar.config.maxDay());
     }
 
     this.setLastJoin(LocalDate.now().toEpochDay());
   }
 
-  public void reset(boolean completeall) {
+  public void reset(ServerPlayerEntity player, boolean completeall) {
     if (completeall) {
       this.setDayclaimed(LocalDate.now().toEpochDay());
     } else {
       this.setDayclaimed(LocalDate.now().minusDays(1).toEpochDay());
     }
     this.setDay((short) 0);
-    DatabaseClientFactory.databaseClient.updateUserInfo(this);
+    DatabaseClientFactory.databaseClient.updateUserInfo(player, this);
   }
 
   public void claim() {

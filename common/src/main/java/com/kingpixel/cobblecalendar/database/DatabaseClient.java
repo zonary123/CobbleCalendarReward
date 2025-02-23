@@ -10,8 +10,8 @@ public interface DatabaseClient {
   void connect();
 
   UserInfo getUserInfo(ServerPlayerEntity player);
-  
-  void updateUserInfo(UserInfo userInfo);
+
+  void updateUserInfo(ServerPlayerEntity player, UserInfo userInfo);
 
   void disconnect();
 

@@ -23,22 +23,18 @@ public class DailyRewardsManager {
   public void init(ServerPlayerEntity player) {
 
     UUID playerUUID = player.getUuid();
-    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, playerUUID + ".json",
+    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, player.getUuidAsString() + ".json",
       fileContent -> {
         Gson gson = Utils.newWithoutSpacingGson();
         UserInfo userInfo = gson.fromJson(fileContent, UserInfo.class);
         userInfoMap.put(playerUUID, userInfo);
       });
 
-    futureRead.thenRun(() -> {
-      UserInfo userInfo = userInfoMap.get(playerUUID);
-      if (userInfo == null) {
-        CobbleCalendar.LOGGER.info("No userinfo file found for " + CobbleCalendar.MOD_NAME + ". Attempting to generate one.");
-        userInfo = new UserInfo(player);
-        userInfoMap.put(playerUUID, userInfo);
-      }
-      userInfo.writeInfo(playerUUID);
-    }).join();
+    if (!futureRead.join()) {
+      UserInfo userInfo = new UserInfo(player);
+      userInfoMap.put(playerUUID, userInfo);
+      userInfo.writeInfo(player);
+    }
 
   }
 

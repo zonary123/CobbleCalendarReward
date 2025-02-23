@@ -82,9 +82,13 @@ public class CobbleCalendar {
 
     PlayerEvent.PLAYER_JOIN.register(player -> {
       UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
-      userInfo.computeDay();
-      DatabaseClientFactory.databaseClient.updateUserInfo(userInfo);
+      userInfo.computeDay(player);
+      DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
       sendAlert(player);
+    });
+
+    PlayerEvent.PLAYER_QUIT.register(player -> {
+      manager.getUserInfoMap().remove(player.getUuid());
     });
   }
 
