@@ -17,6 +17,8 @@ public class Lang {
   private String messageCanClaim;
   private String messageClaimed;
   private String messageVerySoon;
+  private String messageCompleted;
+  private String messageReset;
   private ItemModel globalClaimed;
   private ItemModel globalCanClaim;
   private ItemModel globalNotClaimed;
@@ -32,6 +34,8 @@ public class Lang {
     this.messageCanClaim = "%prefix% <#64de7c>You can claim rewards in <#ecca18>/calendar";
     this.messageClaimed = "%prefix% <#d65549>You have already claimed your rewards for today.";
     this.messageVerySoon = "%prefix% <#d65549>This reward will be available very soon.";
+    this.messageCompleted = "%prefix% <#64de7c>You have completed the calendar and the data was reset to day 1.";
+    this.messageReset = "%prefix% <#64de7c>The calendar was reset because you lost your streak.";
     this.globalClaimed = new ItemModel("minecraft:minecart");
     this.globalCanClaim = new ItemModel("minecraft:minecart");
     this.globalNotClaimed = new ItemModel("minecraft:chest_minecart");
@@ -45,18 +49,8 @@ public class Lang {
       CobbleCalendar.config.getLang() + ".json",
       el -> {
         Gson gson = Utils.newGson();
-        Lang lang = gson.fromJson(el, Lang.class);
-        this.prefix = lang.getPrefix();
-        this.fill = lang.getFill();
-        this.titlemenu = lang.getTitlemenu();
-        this.messageReload = lang.getMessageReload();
-        this.messageCanClaim = lang.getMessageCanClaim();
-        this.messageClaimed = lang.getMessageClaimed();
-        this.messageVerySoon = lang.getMessageVerySoon();
-        this.globalClaimed = lang.getGlobalClaimed();
-        this.globalCanClaim = lang.getGlobalCanClaim();
-        this.globalNotClaimed = lang.getGlobalNotClaimed();
-        String data = gson.toJson(this);
+        CobbleCalendar.language = gson.fromJson(el, Lang.class);
+        String data = gson.toJson(CobbleCalendar.language);
         CompletableFuture<Boolean> futureWrite = Utils.writeFileAsync(CobbleCalendar.PATH_LANG, CobbleCalendar.config.getLang() +
             ".json",
           data);
@@ -68,7 +62,8 @@ public class Lang {
     if (!futureRead.join()) {
       CobbleCalendar.LOGGER.info("No lang.json file found for" + CobbleCalendar.MOD_NAME + ". Attempting to generate one.");
       Gson gson = Utils.newGson();
-      String data = gson.toJson(this);
+      CobbleCalendar.language = this;
+      String data = gson.toJson(CobbleCalendar.language);
       CompletableFuture<Boolean> futureWrite = Utils.writeFileAsync(CobbleCalendar.PATH_LANG, CobbleCalendar.config.getLang() +
           ".json",
         data);

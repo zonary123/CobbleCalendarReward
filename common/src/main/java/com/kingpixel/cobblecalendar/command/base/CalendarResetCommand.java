@@ -3,7 +3,7 @@ package com.kingpixel.cobblecalendar.command.base;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
 import com.kingpixel.cobblecalendar.models.UserInfo;
-import com.kingpixel.cobbleutils.util.LuckPermsUtil;
+import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -29,7 +29,7 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
     dispatcher.register(
       base.then(
         CommandManager.literal("reset")
-          .requires(source -> LuckPermsUtil.checkPermission(source, 2, "cobblecalendarreward.reset"))
+          .requires(source -> PermissionApi.hasPermission(source, "cobblecalendarreward.reset", 4))
           .executes(
             context -> {
               if (!context.getSource().isExecutedByPlayer()) {
@@ -57,7 +57,7 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
   private static void reset(ServerPlayerEntity player) {
     UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
     userInfo.reset(player, true);
-    userInfo.setDayclaimed(0);
+    userInfo.setDayClaimed(0);
     DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
   }
 

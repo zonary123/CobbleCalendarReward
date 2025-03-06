@@ -2,7 +2,7 @@ package com.kingpixel.cobblecalendar.command.base;
 
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.ui.DailyRewardUI;
-import com.kingpixel.cobbleutils.util.LuckPermsUtil;
+import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -29,7 +29,7 @@ public class CalendarRewardCommand implements Command<ServerCommandSource> {
       base
         .then(
           CommandManager.literal("other")
-            .requires(source -> LuckPermsUtil.checkPermission(source, 2, "cobblecalendarreward.other"))
+            .requires(source -> PermissionApi.hasPermission(source, "cobblecalendarreward.other", 4))
             .then(
               CommandManager.argument("player", EntityArgumentType.players())
                 .executes(context -> {

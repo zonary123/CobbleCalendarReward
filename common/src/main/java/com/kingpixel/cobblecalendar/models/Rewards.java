@@ -17,8 +17,8 @@ import java.util.List;
 @Data
 @ToString
 public class Rewards {
-  private short day;
-  private short slot;
+  private int day;
+  private int slot;
   private ItemModel claimed;
   private ItemModel canClaim;
   private ItemModel notClaimed;
@@ -44,8 +44,8 @@ public class Rewards {
   }
 
   public Rewards(int day, int slot) {
-    this.day = (short) day;
-    this.slot = (short) slot;
+    this.day = day;
+    this.slot = slot;
     this.claimed = new ItemModel("", "Day %day%", List.of(
       "You have already claimed this reward."
     ));

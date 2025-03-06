@@ -27,6 +27,7 @@ public class Config {
   private boolean active;
   private boolean autoReset;
   private boolean autoPlace;
+  private boolean sendMessageReset;
   private String lang;
   private int resetMarginDays;
   private List<String> commands;
@@ -41,6 +42,7 @@ public class Config {
     this.active = true;
     this.autoReset = true;
     this.autoPlace = false;
+    this.sendMessageReset = true;
     this.lang = "en";
     this.resetMarginDays = 3;
     this.commands = new ArrayList<>();
@@ -56,6 +58,24 @@ public class Config {
     this.rows = 5;
     this.checkReward = 15;
     this.rewards = null;
+  }
+
+  private void check() {
+    if (resetMarginDays < 2) resetMarginDays = 2;
+    if (commands == null) {
+      commands = new ArrayList<>();
+      commands.add("calendar");
+      commands.add("calendarreward");
+    }
+    if (database == null) {
+      database = new DataBaseConfig(
+        DataBaseType.JSON,
+        "calendarrewards",
+        "mongodb://localhost:27017",
+        "user",
+        "password"
+      );
+    }
   }
 
   public void init() {
@@ -83,7 +103,7 @@ public class Config {
       CobbleCalendar.LOGGER.info("No config.json file found for" + CobbleCalendar.MOD_NAME + ". Attempting to generate one.");
       Gson gson = Utils.newGson();
       CobbleCalendar.config = this;
-      String data = gson.toJson(this);
+      String data = gson.toJson(CobbleCalendar.config);
       CompletableFuture<Boolean> futureWrite = Utils.writeFileAsync(CobbleCalendar.PATH, "config.json",
         data);
       createRewards();
@@ -95,9 +115,6 @@ public class Config {
     CobbleCalendar.config.readRewards();
   }
 
-  private void check() {
-
-  }
 
   private void readRewards() {
     if (rewards == null) rewards = new ArrayList<>();
@@ -109,12 +126,31 @@ public class Config {
       return;
     }
 
-    for (File file : folder.listFiles()) {
+    File[] files = folder.listFiles();
+    if (files == null) {
+      CobbleCalendar.LOGGER.fatal("Could not read rewards files for " + CobbleCalendar.MOD_NAME + ".");
+      return;
+    }
+    for (File file : files) {
+      List<Integer> days = new ArrayList<>();
+      List<Integer> slots = new ArrayList<>();
       CompletableFuture<Boolean> futureRead = Utils.readFileAsync(CobbleCalendar.PATH_REWARDS, file.getName(),
         el -> {
           Gson gson = Utils.newGson();
           Rewards reward = gson.fromJson(el, Rewards.class);
           reward.check();
+          if (days.contains(reward.getDay())) {
+            CobbleCalendar.LOGGER.fatal("Duplicate day found in rewards file for " + CobbleCalendar.MOD_NAME + " File" +
+              " -> " + file.getAbsolutePath() +
+              ".");
+          }
+          if (slots.contains(reward.getSlot())) {
+            CobbleCalendar.LOGGER.fatal("Duplicate slot found in rewards file for " + CobbleCalendar.MOD_NAME + " File" +
+              " -> " + file.getAbsolutePath() +
+              ".");
+          }
+          days.add(reward.getDay());
+          slots.add(reward.getSlot());
           rewards.add(reward);
           Utils.writeFileAsync(CobbleCalendar.PATH_REWARDS, reward.getDay() + ".json",
             Utils.newGson().toJson(reward));

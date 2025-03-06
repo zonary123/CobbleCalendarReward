@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.ToString;
 import net.minecraft.server.network.ServerPlayerEntity;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -18,11 +19,19 @@ import java.util.concurrent.CompletableFuture;
 public class DailyRewardsManager {
   public static final String PATH_USER_INFO = CobbleCalendar.PATH + "/data/";
 
-  private final Map<UUID, UserInfo> userInfoMap = new HashMap<>();
+  private Map<UUID, UserInfo> userInfoMap = new HashMap<>();
 
   public void init(ServerPlayerEntity player) {
 
     UUID playerUUID = player.getUuid();
+    File file = Utils.getAbsolutePath(PATH_USER_INFO + player.getUuidAsString() + ".json");
+    if (!file.exists()) {
+      UserInfo userInfo = new UserInfo(player);
+      userInfoMap.put(playerUUID, userInfo);
+      userInfo.writeInfo(player);
+      return;
+    }
+    
     CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH_USER_INFO, player.getUuidAsString() + ".json",
       fileContent -> {
         Gson gson = Utils.newWithoutSpacingGson();
@@ -31,9 +40,7 @@ public class DailyRewardsManager {
       });
 
     if (!futureRead.join()) {
-      UserInfo userInfo = new UserInfo(player);
-      userInfoMap.put(playerUUID, userInfo);
-      userInfo.writeInfo(player);
+      CobbleCalendar.LOGGER.error("Error reading user info for player: " + player.getGameProfile().getName());
     }
 
   }

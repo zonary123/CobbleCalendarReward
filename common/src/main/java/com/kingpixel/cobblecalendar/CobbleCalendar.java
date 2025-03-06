@@ -82,6 +82,7 @@ public class CobbleCalendar {
 
     PlayerEvent.PLAYER_JOIN.register(player -> {
       UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
+      if (userInfo == null) return;
       userInfo.computeDay(player);
       DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
       sendAlert(player);
