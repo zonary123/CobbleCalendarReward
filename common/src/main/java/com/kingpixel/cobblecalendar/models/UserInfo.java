@@ -2,7 +2,7 @@ package com.kingpixel.cobblecalendar.models;
 
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
-import com.kingpixel.cobblecalendar.managers.DailyRewardsManager;
+import com.kingpixel.cobblecalendar.database.JSONClient;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.Utils;
@@ -75,14 +75,18 @@ public class UserInfo implements Serializable {
    * @param player the player entity
    */
   public void writeInfo(ServerPlayerEntity player) {
-    File folder = Utils.getAbsolutePath(DailyRewardsManager.PATH_USER_INFO);
+    File folder = Utils.getAbsolutePath(JSONClient.PATH_USER_INFO);
     if (!folder.exists() && !folder.mkdirs()) {
       CobbleCalendar.LOGGER.warn("Failed to create user info directory: " + folder.getPath());
       return;
     }
 
     String json = Utils.newWithoutSpacingGson().toJson(this);
-    Utils.writeFileAsync(DailyRewardsManager.PATH_USER_INFO, player.getUuidAsString() + ".json", json);
+    if (json == null || json.isEmpty()) {
+      CobbleCalendar.LOGGER.warn("Failed to convert user info to JSON for player: " + player.getGameProfile().getName());
+      return;
+    }
+    Utils.writeFileAsync(JSONClient.PATH_USER_INFO, player.getUuidAsString() + ".json", json);
   }
 
   /**

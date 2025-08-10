@@ -17,6 +17,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 02/08/2024 12:23
@@ -55,10 +56,17 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
   }
 
   private static void reset(ServerPlayerEntity player) {
-    UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
-    userInfo.reset(player, true);
-    userInfo.setDayClaimed(0);
-    DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
+    if (player == null) return;
+    CompletableFuture.runAsync(() -> {
+        UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
+        userInfo.reset(player, true);
+        userInfo.setDayClaimed(0);
+        DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
+      }, CobbleCalendar.EXECUTOR_CALENDAR)
+      .exceptionally(e -> {
+        e.printStackTrace();
+        return null;
+      });
   }
 
   @Override

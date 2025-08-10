@@ -56,6 +56,7 @@ public class MongoDBClient implements DatabaseClient {
   }
 
   @Override public UserInfo getUserInfo(ServerPlayerEntity player) {
+    
     UserInfo userInfo = mongoCollection.find(
       Filters.eq("uuid", player.getUuid()),
       UserInfo.class

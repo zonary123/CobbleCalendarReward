@@ -51,7 +51,6 @@ public class CommandTree {
                 );
               }
               CobbleCalendar.load();
-
               return 1;
             })
         )

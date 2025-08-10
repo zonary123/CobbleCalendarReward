@@ -13,6 +13,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.time.LocalDate;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 24/02/2025 22:54
@@ -36,13 +37,20 @@ public class CalendarSetDayCommand {
                   .executes(context -> {
                     if (!CobbleCalendar.config.isActive()) return 0;
                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
-                    int day = IntegerArgumentType.getInteger(context, "day");
-                    UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
-                    userInfo.setDay(Math.max(day - 1, 0));
-                    long now = LocalDate.now().toEpochDay();
-                    userInfo.setLastJoin(now);
-                    userInfo.setDayClaimed(now - 1);
-                    DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
+                    if (player == null) return 0;
+                    CompletableFuture.runAsync(() -> {
+                        int day = IntegerArgumentType.getInteger(context, "day");
+                        UserInfo userInfo = DatabaseClientFactory.databaseClient.getUserInfo(player);
+                        userInfo.setDay(Math.max(day - 1, 0));
+                        long now = LocalDate.now().toEpochDay();
+                        userInfo.setLastJoin(now);
+                        userInfo.setDayClaimed(now - 1);
+                        DatabaseClientFactory.databaseClient.updateUserInfo(player, userInfo);
+                      }, CobbleCalendar.EXECUTOR_CALENDAR)
+                      .exceptionally(e -> {
+                        e.printStackTrace();
+                        return null;
+                      });
                     return 1;
                   })
               )
