@@ -113,16 +113,14 @@ public class CobbleCalendar {
 
     long interval = 20L * 60 * config.getCheckReward();
     alertReward = Task.builder()
-      .execute(() -> {
-        CompletableFuture.runAsync(() -> {
-            var players = server.getPlayerManager().getPlayerList();
-            players.forEach(CobbleCalendar::sendAlert);
-          }, EXECUTOR_CALENDAR)
-          .exceptionally(e -> {
-            e.printStackTrace();
-            return null;
-          });
-      })
+      .execute(() -> CompletableFuture.runAsync(() -> {
+          var players = server.getPlayerManager().getPlayerList();
+          players.forEach(CobbleCalendar::sendAlert);
+        }, EXECUTOR_CALENDAR)
+        .exceptionally(e -> {
+          e.printStackTrace();
+          return null;
+        }))
       .interval(interval)
       .infinite()
       .build();

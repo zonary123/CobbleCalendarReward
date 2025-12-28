@@ -3,20 +3,20 @@ package com.kingpixel.cobblecalendar.database;
 import com.kingpixel.cobblecalendar.CobbleCalendar;
 import com.kingpixel.cobblecalendar.models.UserInfo;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
-import com.kingpixel.cobbleutils.bson.UuidRepresentation;
-import com.kingpixel.cobbleutils.bson.codecs.configuration.CodecRegistry;
-import com.kingpixel.cobbleutils.bson.codecs.pojo.PojoCodecProvider;
-import com.kingpixel.cobbleutils.mongodb.ConnectionString;
-import com.kingpixel.cobbleutils.mongodb.MongoClientSettings;
-import com.kingpixel.cobbleutils.mongodb.client.MongoClient;
-import com.kingpixel.cobbleutils.mongodb.client.MongoClients;
-import com.kingpixel.cobbleutils.mongodb.client.MongoCollection;
-import com.kingpixel.cobbleutils.mongodb.client.MongoDatabase;
-import com.kingpixel.cobbleutils.mongodb.client.model.Filters;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.bson.UuidRepresentation;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.PojoCodecProvider;
 
-import static com.kingpixel.cobbleutils.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static com.kingpixel.cobbleutils.bson.codecs.configuration.CodecRegistries.fromRegistries;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 public class MongoDBClient implements DatabaseClient {
   private MongoCollection<UserInfo> mongoCollection;
@@ -56,7 +56,7 @@ public class MongoDBClient implements DatabaseClient {
   }
 
   @Override public UserInfo getUserInfo(ServerPlayerEntity player) {
-    
+
     UserInfo userInfo = mongoCollection.find(
       Filters.eq("uuid", player.getUuid()),
       UserInfo.class
