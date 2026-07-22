@@ -1,8 +1,8 @@
-package com.kingpixel.cobblecalendar.database;
+package com.kingpixel.ultracalendar.database;
 
-import com.kingpixel.cobblecalendar.CobbleCalendar;
-import com.kingpixel.cobblecalendar.models.User;
 import com.kingpixel.cobbleutils.util.UtilsFile;
+import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.models.User;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 
@@ -16,12 +16,12 @@ import java.util.concurrent.CompletableFuture;
 public class JSONClient extends DatabaseClient {
   @Override
   public void connect() {
-    CobbleCalendar.LOGGER.info("Using JSON database client.");
+    UltraCalendar.LOGGER.info("Using JSON database client.");
   }
 
   @Override
   public void disconnect() {
-    CobbleCalendar.LOGGER.info("Disconnecting JSON database client and saving all data.");
+    UltraCalendar.LOGGER.info("Disconnecting JSON database client and saving all data.");
     saveAll().join();
   }
 
@@ -34,12 +34,13 @@ public class JSONClient extends DatabaseClient {
   public CompletableFuture<Void> saveOrUpdateUser(@NotNull User user) {
     return UtilsFile.writeAsync(getUserFile(user.getUuid()), user)
       .exceptionally(throwable -> {
-        CobbleCalendar.LOGGER.error("Error saving user " + user.getName() + " with UUID " + user.getUuid(), throwable);
+        UltraCalendar.LOGGER.error("Error saving user " + user.getName() + " with UUID " + user.getUuid(), throwable);
         return null;
       });
   }
 
   private Path getUserFile(UUID uuid) {
-    return CobbleCalendar.getPath().resolve("data").resolve(uuid.toString() + ".json");
+    return UltraCalendar.getPath().resolve("data").resolve(uuid.toString() + ".json");
   }
 }
+

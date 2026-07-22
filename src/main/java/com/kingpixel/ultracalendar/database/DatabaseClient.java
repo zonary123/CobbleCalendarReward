@@ -1,8 +1,9 @@
-package com.kingpixel.cobblecalendar.database;
+package com.kingpixel.ultracalendar.database;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.kingpixel.cobblecalendar.models.User;
+import com.kingpixel.ultracalendar.models.User;
+
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;

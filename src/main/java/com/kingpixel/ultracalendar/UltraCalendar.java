@@ -1,17 +1,17 @@
-package com.kingpixel.cobblecalendar;
+package com.kingpixel.ultracalendar;
 
 import com.google.gson.JsonSyntaxException;
-import com.kingpixel.cobblecalendar.command.CommandTree;
-import com.kingpixel.cobblecalendar.config.Config;
-import com.kingpixel.cobblecalendar.config.Lang;
-import com.kingpixel.cobblecalendar.database.DatabaseClient;
-import com.kingpixel.cobblecalendar.database.DatabaseClientFactory;
-import com.kingpixel.cobblecalendar.models.User;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.async.AsyncContext;
 import com.kingpixel.cobbleutils.util.async.UtilsAsync;
+import com.kingpixel.ultracalendar.command.CommandTree;
+import com.kingpixel.ultracalendar.config.Config;
+import com.kingpixel.ultracalendar.config.Lang;
+import com.kingpixel.ultracalendar.database.DatabaseClient;
+import com.kingpixel.ultracalendar.database.DatabaseClientFactory;
+import com.kingpixel.ultracalendar.models.User;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -26,12 +26,12 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 
-public class CobbleCalendar implements ModInitializer {
-  public static final String MOD_ID = "cobblecalendar";
-  public static final String MOD_NAME = "CobbleCalendar";
-  public static final String PATH = "/config/cobblecalendar";
-  public static final String PATH_LANG = "/config/cobblecalendar/lang/";
-  public static final String PATH_REWARDS = "/config/cobblecalendar/rewards/";
+public class UltraCalendar implements ModInitializer {
+  public static final String MOD_ID = "ultracalendar";
+  public static final String MOD_NAME = "UltraCalendar";
+  public static final String PATH = "/config/ultracalendar";
+  public static final String PATH_LANG = "/config/ultracalendar/lang/";
+  public static final String PATH_REWARDS = "/config/ultracalendar/rewards/";
   public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
   public static DatabaseClient database;
   // Config and Lang
@@ -100,7 +100,7 @@ public class CobbleCalendar implements ModInitializer {
   private static void tasks() {
     // Alert players
     ASYNC.scheduleAtFixedRate(() -> DatabaseClient.USERS.asMap().values()
-      .forEach(CobbleCalendar::sendAlert), 0, 15, TimeUnit.MINUTES);
+      .forEach(UltraCalendar::sendAlert), 0, 15, TimeUnit.MINUTES);
     // Save all players
     ASYNC.scheduleAtFixedRate(() -> {
       if (database == null) return;
@@ -127,3 +127,4 @@ public class CobbleCalendar implements ModInitializer {
   private static final Path path = CobbleUtils.getPath().resolve(MOD_ID);
 
 }
+

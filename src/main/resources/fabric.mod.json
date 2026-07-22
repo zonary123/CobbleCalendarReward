@@ -11,9 +11,10 @@
     },
     "entrypoints": {
         "main": [
-            "com.kingpixel.cobblecalendar.CobbleCalendar"
+            "com.kingpixel.ultracalendar.UltraCalendar"
         ]
     },
+
     "license": "${license}",
     "environment": "*",
     "depends": {

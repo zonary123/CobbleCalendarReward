@@ -1,12 +1,12 @@
-package com.kingpixel.cobblecalendar.command;
+package com.kingpixel.ultracalendar.command;
 
-import com.kingpixel.cobblecalendar.CobbleCalendar;
-import com.kingpixel.cobblecalendar.command.base.CalendarResetCommand;
-import com.kingpixel.cobblecalendar.command.base.CalendarRewardCommand;
-import com.kingpixel.cobblecalendar.command.base.CalendarSetDayCommand;
-import com.kingpixel.cobblecalendar.ui.DailyRewardUI;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.LuckPermsUtil;
+import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.command.base.CalendarResetCommand;
+import com.kingpixel.ultracalendar.command.base.CalendarRewardCommand;
+import com.kingpixel.ultracalendar.command.base.CalendarSetDayCommand;
+import com.kingpixel.ultracalendar.ui.DailyRewardUI;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.command.CommandRegistryAccess;
@@ -19,16 +19,18 @@ import net.minecraft.server.network.ServerPlayerEntity;
  */
 public class CommandTree {
 
+  private CommandTree() {}
+
   public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registry) {
-    CobbleCalendar.config.getCommands().forEach(literal -> {
+    UltraCalendar.config.getCommands().forEach(literal -> {
       LiteralArgumentBuilder<ServerCommandSource> base = CommandManager.literal(literal)
-        .requires(source -> LuckPermsUtil.checkPermission(source, 4, "cobblecalendarreward.user"))
+        .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.user"))
         .executes(context -> {
           if (!context.getSource().isExecutedByPlayer()) {
-            CobbleCalendar.LOGGER.info("This command can only be executed by a player.");
+            UltraCalendar.LOGGER.info("This command can only be executed by a player.");
             return 0;
           }
-          if (!CobbleCalendar.config.isActive()) return 0;
+          if (!UltraCalendar.config.isActive()) return 0;
           ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
           DailyRewardUI.open(player);
           return 1;
@@ -41,16 +43,16 @@ public class CommandTree {
       dispatcher.register(
         base.then(
           CommandManager.literal("reload")
-            .requires(source -> LuckPermsUtil.checkPermission(source, 4, "cobblecalendarreward.reload"))
+            .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.reload"))
             .executes(context -> {
               if (context.getSource().isExecutedByPlayer()) {
                 context.getSource().getPlayer().sendMessage(
-                  AdventureTranslator.toNative(CobbleCalendar.language.getMessageReload()
-                    .replace("%prefix%", CobbleCalendar.language.getPrefix())
+                  AdventureTranslator.toNative(UltraCalendar.language.getMessageReload()
+                    .replace("%prefix%", UltraCalendar.language.getPrefix())
                   )
                 );
               }
-              CobbleCalendar.load();
+              UltraCalendar.load();
               return 1;
             })
         )
@@ -60,3 +62,4 @@ public class CommandTree {
 
 
 }
+

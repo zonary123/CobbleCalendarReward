@@ -1,14 +1,20 @@
 # Changelog
 
-**IMPORTANT:** Please test the changes listed below to ensure they are working correctly.
+All notable changes to this project will be documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.1] - 12-02-2026
+## [2.0.0] - 2026-07-22
 
-Multiplier: `/lp user <player> meta settemp ultrabattlepass.multiplier 2 1d`
+### Added
+- Mod renamed from CobbleCalendarRewards to UltraCalendar.
+- Support for organize calendars by subfolders like `Year/Month` (e.g. `rewards/2026/07/1.json`) alongside standard flat root calendars.
+- Support for SQL databases (`SQLite`, `MySQL`, `MariaDB`, `H2`).
+- Fully customizable close button in language configuration.
 
-### Features
+### Changed
+- Improved database and file storage integrations using CobbleUtils.
+- General performance and menu responsiveness optimizations.
 
-- Added the new CobbleUtils rewards system. It should perform the migration automatically, but please make a backup of
-  the config and verify that the migration works correctly and that rewards are properly granted.
-- Added translation support for the leaderboard description.
-- Fixed issues with the required XP, and fixed several other things.
+### Fixed
+- Fixed hardcoded close button position and behavior in the menu.

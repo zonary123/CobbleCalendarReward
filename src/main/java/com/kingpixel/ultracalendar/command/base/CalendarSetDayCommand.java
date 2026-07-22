@@ -1,8 +1,8 @@
-package com.kingpixel.cobblecalendar.command.base;
+package com.kingpixel.ultracalendar.command.base;
 
-import com.kingpixel.cobblecalendar.CobbleCalendar;
-import com.kingpixel.cobblecalendar.models.User;
 import com.kingpixel.cobbleutils.api.PermissionApi;
+import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.models.User;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -21,9 +21,9 @@ public class CalendarSetDayCommand {
         CommandManager.literal("setDay")
           .requires(source -> PermissionApi.hasPermission(source, "cobblecalendarreward.setday", 4))
           .then(
-            CommandManager.argument("day", IntegerArgumentType.integer(0, CobbleCalendar.config.maxDay()))
+            CommandManager.argument("day", IntegerArgumentType.integer(0, UltraCalendar.config.maxDay()))
               .suggests((context, builder) -> {
-                for (int i = 0; i <= CobbleCalendar.config.maxDay(); i++) {
+                for (int i = 0; i <= UltraCalendar.config.maxDay(); i++) {
                   builder.suggest(i);
                 }
                 return builder.buildFuture();
@@ -31,12 +31,12 @@ public class CalendarSetDayCommand {
               .then(
                 CommandManager.argument("player", EntityArgumentType.player())
                   .executes(context -> {
-                    if (!CobbleCalendar.config.isActive()) return 0;
+                    if (!UltraCalendar.config.isActive()) return 0;
 
                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
                     int day = IntegerArgumentType.getInteger(context, "day");
 
-                    User user = CobbleCalendar.database.getUser(player);
+                    User user = UltraCalendar.database.getUser(player);
                     if (user == null) return 0;
 
                     long today = LocalDate.now().toEpochDay();

@@ -1,4 +1,5 @@
-package com.kingpixel.cobblecalendar.models;
+package com.kingpixel.ultracalendar.models;
+
 
 import com.kingpixel.cobbleutils.Model.AdvancedItemChance;
 import com.kingpixel.cobbleutils.Model.ItemModel;

@@ -1,7 +1,7 @@
-package com.kingpixel.cobblecalendar.command.base;
+package com.kingpixel.ultracalendar.command.base;
 
-import com.kingpixel.cobblecalendar.CobbleCalendar;
-import com.kingpixel.cobblecalendar.ui.DailyRewardUI;
+import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.ui.DailyRewardUI;
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
@@ -33,7 +33,7 @@ public class CalendarRewardCommand implements Command<ServerCommandSource> {
             .then(
               CommandManager.argument("player", EntityArgumentType.players())
                 .executes(context -> {
-                  if (!CobbleCalendar.config.isActive()) return 0;
+                  if (!UltraCalendar.config.isActive()) return 0;
                   ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
                   DailyRewardUI.open(player);
                   return 1;
