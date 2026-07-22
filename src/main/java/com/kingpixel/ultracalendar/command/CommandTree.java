@@ -36,27 +36,27 @@ public class CommandTree {
           return 1;
         });
 
-      CalendarRewardCommand.register(dispatcher, base);
-      CalendarResetCommand.register(dispatcher, base);
-      CalendarSetDayCommand.register(dispatcher, base);
+      CalendarRewardCommand.register(base);
+      CalendarResetCommand.register(base);
+      CalendarSetDayCommand.register(base);
 
-      dispatcher.register(
-        base.then(
-          CommandManager.literal("reload")
-            .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.reload"))
-            .executes(context -> {
-              if (context.getSource().isExecutedByPlayer()) {
-                context.getSource().getPlayer().sendMessage(
-                  AdventureTranslator.toNative(UltraCalendar.language.getMessageReload()
-                    .replace("%prefix%", UltraCalendar.language.getPrefix())
-                  )
-                );
-              }
-              UltraCalendar.load();
-              return 1;
-            })
-        )
+      base.then(
+        CommandManager.literal("reload")
+          .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.reload"))
+          .executes(context -> {
+            if (context.getSource().isExecutedByPlayer()) {
+              context.getSource().getPlayer().sendMessage(
+                AdventureTranslator.toNative(UltraCalendar.language.getMessageReload()
+                  .replace("%prefix%", UltraCalendar.language.getPrefix())
+                )
+              );
+            }
+            UltraCalendar.load();
+            return 1;
+          })
       );
+
+      dispatcher.register(base);
     });
   }
 

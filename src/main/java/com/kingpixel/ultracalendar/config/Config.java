@@ -60,7 +60,7 @@ public class Config {
 
   private void check() {
     if (resetMarginDays < 2) resetMarginDays = 2;
-    if (commands == null) {
+    if (commands == null || commands.isEmpty()) {
       commands = new ArrayList<>();
       commands.add("calendar");
       commands.add("calendarreward");
