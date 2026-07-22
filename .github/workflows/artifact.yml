@@ -9,13 +9,16 @@ jobs:
       - name: setup jdk
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: "21"
           distribution: temurin
           cache: gradle
       - name: gradle setup
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
+      - name: make gradlew executable
+        run: chmod +x ./gradlew
       - name: gradle build
         run: ./gradlew build --no-daemon
+
       - name: set params
         run: |
           cat $GITHUB_WORKSPACE/gradle.properties | grep ^archives_base_name= >> $GITHUB_ENV
