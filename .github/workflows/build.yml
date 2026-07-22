@@ -55,6 +55,11 @@ jobs:
 
       - name: Send Discord Notification with Embed and File
         run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not set. Skipping Discord notification."
+            exit 0
+          fi
+
           FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
           
           # Extraer changelog
@@ -83,6 +88,11 @@ jobs:
 
       - name: Publish to Modrinth
         run: |
+          if [ -z "$MODRINTH_TOKEN" ]; then
+            echo "MODRINTH_TOKEN is not set. Skipping Modrinth publish."
+            exit 0
+          fi
+
           FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
 
           # Verificar si la versión ya existe
@@ -95,3 +105,4 @@ jobs:
           fi
 
           ./gradlew modrinth -PuploadFile="$FILE" -PmodrinthVersion="$MOD_VERSION"
+
