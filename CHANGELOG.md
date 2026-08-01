@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed `CodecConfigurationException` in `MongoDBClient` when searching/saving users by serializing `User` objects to JSON `Document` using `Gson`.
+- Fixed a MongoDB database integration issue that prevented user data from saving and loading correctly.
 
 ## [2.0.0] - 2026-07-22
 
