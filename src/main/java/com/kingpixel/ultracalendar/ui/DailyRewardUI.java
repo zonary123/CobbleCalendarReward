@@ -157,7 +157,6 @@ public class DailyRewardUI {
                 user.claim();
                 user.markDirty();
                 user.save();
-                UltraCalendar.publishRedisInvalidation(player.getUuid());
 
                 if (reward.getRewards() != null) {
                   reward.getRewards().giveRewards(player);

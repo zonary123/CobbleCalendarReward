@@ -46,7 +46,6 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
       user.reset(player, true);
       user.markDirty();
       user.save();
-      UltraCalendar.publishRedisInvalidation(player.getUuid());
     });
   }
 

@@ -47,7 +47,6 @@ public class CalendarSetDayCommand {
                     user.markDirty();
                     user.fix();
                     user.save();
-                    UltraCalendar.publishRedisInvalidation(player.getUuid());
                   });
 
                   return 1;

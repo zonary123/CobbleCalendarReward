@@ -1,6 +1,5 @@
 package com.kingpixel.ultracalendar;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DurationValue;
@@ -10,8 +9,6 @@ import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.cobbleutils.util.async.AsyncContext;
 import com.kingpixel.cobbleutils.util.async.UtilsAsync;
-import com.kingpixel.cobbleutils.util.redis.RedisManager;
-import com.kingpixel.cobbleutils.util.redis.handlers.RedisHandler;
 import com.kingpixel.ultracalendar.command.CommandTree;
 import com.kingpixel.ultracalendar.config.Config;
 import com.kingpixel.ultracalendar.config.Lang;
@@ -31,8 +28,8 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UltraCalendar implements ModInitializer {
   public static final String MOD_ID = "ultracalendar";
@@ -66,13 +63,17 @@ public class UltraCalendar implements ModInitializer {
     DatabaseClientFactory.createDatabaseClient(config.getDatabase());
   }
 
+  private static final AtomicBoolean serverStopping = new AtomicBoolean(false);
+
   private static void events() {
     load();
     tasks();
-    registerRedis();
     CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> CommandTree.register(dispatcher, registry));
 
-    LifecycleEvent.SERVER_STOPPING.register(server -> database.disconnect());
+    LifecycleEvent.SERVER_STOPPING.register(server -> {
+      serverStopping.set(true);
+      if (database != null) database.disconnect();
+    });
 
     CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(player -> {
       if (!config.isActive()) return;
@@ -109,18 +110,19 @@ public class UltraCalendar implements ModInitializer {
     );
 
     PlayerEvent.PLAYER_QUIT.register(player -> {
+      if (serverStopping.get() || (CobbleUtils.server != null && CobbleUtils.server.isStopping())) {
+        return;
+      }
       User user = database.getUserDirect(player);
       if (user == null) return;
       user.setLastJoin(User.getTodayEpoch());
       user.markDirty();
-      try {
-        user.save().get(5, TimeUnit.SECONDS);
-      } catch (Exception e) {
-        LOGGER.error("Error saving user data on disconnect for: " + player.getGameProfile().getName(), e);
-      } finally {
+      user.save().whenComplete((v, ex) -> {
+        if (ex != null) {
+          LOGGER.error("Error saving user data on disconnect for: {}", player.getGameProfile().getName(), ex);
+        }
         DatabaseClient.USERS.invalidate(player.getUuid());
-        publishRedisInvalidation(player.getUuid());
-      }
+      });
     });
   }
 
@@ -190,62 +192,7 @@ public class UltraCalendar implements ModInitializer {
     });
   }
 
-  public static void publishRedisInvalidation(@NotNull UUID uuid) {
-    try {
-      if (CobbleUtils.config != null && CobbleUtils.config.isRedisMessaging()) {
-        RedisManager mgr = CobbleUtils.redisManager;
-        if (mgr != null && mgr.getConnected() != null && mgr.getConnected().get()) {
-          JsonObject json = new JsonObject();
-          json.addProperty("action", "invalidate");
-          json.addProperty("uuid", uuid.toString());
-          mgr.publish("ultracalendar:user_sync", json);
-        }
-      }
-    } catch (Exception e) {
-      LOGGER.warn("Failed to publish Redis invalidation for UUID {}: {}", uuid, e.getMessage());
-    }
-  }
 
-  private static void registerRedis() {
-    try {
-      if (CobbleUtils.config != null && CobbleUtils.config.isRedisMessaging()) {
-        RedisManager mgr = CobbleUtils.redisManager;
-        if (mgr != null && mgr.getConnected() != null && mgr.getConnected().get()) {
-          mgr.registerHandler(new RedisHandler() {
-            @Override
-            public String getIdentifier() {
-              return "ultracalendar:user_sync";
-            }
-
-            @Override
-            public void handle(JsonObject json) {
-              try {
-                if (json != null && json.has("uuid")) {
-                  UUID uuid = UUID.fromString(json.get("uuid").getAsString());
-                  if (CobbleUtils.server != null) {
-                    ServerPlayerEntity p = CobbleUtils.server.getPlayerManager().getPlayer(uuid);
-                    if (p != null) {
-                      database.findUser(uuid).thenAccept(refreshed -> {
-                        if (refreshed != null) {
-                          DatabaseClient.USERS.put(uuid, refreshed);
-                        }
-                      });
-                      return;
-                    }
-                  }
-                  DatabaseClient.USERS.invalidate(uuid);
-                }
-              } catch (Exception e) {
-                LOGGER.warn("Failed to process incoming Redis user sync payload: {}", e.getMessage());
-              }
-            }
-          });
-        }
-      }
-    } catch (Throwable e) {
-      LOGGER.warn("Failed to register Redis handler for UltraCalendar", e);
-    }
-  }
 
   @Getter
   private static final Path path = CobbleUtils.getPath().resolve(MOD_ID);
