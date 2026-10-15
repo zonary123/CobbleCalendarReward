@@ -8,48 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cross-Server Playtime Synchronization**: Playtime requirements now synchronize across multiple servers on proxy networks with MySQL, MariaDB, and MongoDB.
-- **Playtime Completion Notification**: Players now receive a chat message as soon as they have played the necessary time to claim their reward.
-- **Login Playtime Reminders**: Added reminders when joining the server displaying how much playtime is still needed today.
-- **Configurable Timezone**: Added timezone option to synchronize daily calendar resets across servers in different regions.
-- **Daily and Total Playtime Options**: Rewards can now require either daily playtime or overall total playtime.
-- **Asynchronous Menu Loading**: Opening the reward calendar is now completely smooth and non-blocking, fetching player data asynchronously in the background so the server never freezes or stutters.
-- **Multi-Database Support & In-Memory Caching**: Modernized database structure with high-speed memory caching, offering full support for SQLite, MySQL, MariaDB, H2, and MongoDB via CobbleUtils services.
-- **Complete Administration Command Suite**: Added a full set of administration commands with rich in-game feedback and console support:
-  - `/calendar settime <player> <seconds>` and `/calendar addtime <player> <seconds>` to adjust daily playtime.
-  - `/calendar claim <player> [day]` to force claim rewards for players directly into their inventory.
-  - `/calendar info <player>` to inspect player progress, playtime, and claim eligibility.
-  - `/calendar resetall` to reset progress for all online players simultaneously (ideal for new events or seasons).
-  - `/calendar save` / `/calendar saveall` to immediately persist all pending data to the database.
-  - `/calendar help` to display available commands.
-  - `/calendar other <player>` to open the calendar interface on behalf of another player.
-  - Full feedback messages and console execution compatibility for `/calendar reset`, `/calendar setday`, and `/calendar reload`.
-- **Command Aliases for Players**: Added `/calendar open` and `/calendar gui` so players can open their calendar using explicit subcommands in addition to `/calendar`.
-- **Grouped Admin Command Namespace**: All administrative commands can now also be accessed under `/calendar admin <subcommand>` (e.g., `/calendar admin reset`, `/calendar admin reload`).
+- **Daily Playtime Tracking**: Rewards can now require players to accumulate daily playtime (or total playtime) before claiming.
+- **Playtime Completion Notification**: Players receive a chat notification as soon as they reach the required daily playtime to claim their reward.
+- **Login Playtime Reminders**: Added an optional reminder when joining the server displaying how much playtime is still required today.
+- **Configurable Timezone**: Added `timezone` configuration option to synchronize daily calendar resets across different server regions.
+- **Asynchronous Menu Loading**: Opening the reward calendar is now non-blocking, loading player data in the background without freezing the server.
+- **Multi-Database Support & In-Memory Caching**: Database structure backed by high-speed memory caching, supporting SQLite, MySQL, MariaDB, H2, and MongoDB via CobbleUtils.
+- **Complete Administration Command Suite**: Added a full set of administration commands with in-game feedback and console support:
+  - `/calendar settime <player> <seconds>` & `/calendar addtime <player> <seconds>`: Set or add to a player's daily playtime.
+  - `/calendar claim <player> [day]`: Force claim a reward for a player directly.
+  - `/calendar info <player>`: Inspect a player's current streak, daily playtime, and claim eligibility.
+  - `/calendar resetall`: Reset calendar progress for all online players at once.
+  - `/calendar save` / `/calendar saveall`: Manually trigger a database save of all pending data.
+  - `/calendar other <player>`: Open the calendar menu for another player.
+  - `/calendar reload`: Reload configurations and rewards with console and chat feedback.
+  - `/calendar help`: Display available commands.
+- **Command Aliases for Players**: Added `/calendar open` and `/calendar gui` as subcommands to open the calendar interface.
+- **Grouped Admin Namespace**: Administration commands can be executed directly (e.g. `/calendar reset`) or grouped under `/calendar admin <subcommand>`.
+- **Playtime Placeholders**: Added `%remaining%`, `%required%`, `%playtime%`, `%daily_playtime%`, and `%total_playtime%` for item titles, lores, and chat messages.
 
 ### Changed
 
-- **Standardized Operator Permissions (Level 2)**: Adjusted all administrative commands from owner-only (level 4) to standard operator permission level 2 (`ultracalendarreward.*`), making them accessible to server staff and moderators.
-- **Command Architecture Modularization**: Restructured internal command logic into clean `base` and `admin` modules for improved stability and maintainability.
-- **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group all pending player updates into a single batch request instead of firing multiple individual queries, drastically reducing database load.
-- **Dirty-Flag Change Tracking**: The server now tracks exact player modifications in memory, ensuring only players with actual data changes are written to disk or the database.
-- **Non-Blocking Player Disconnects**: Saving player data on quit is now fully asynchronous without freezing the server main thread.
-- **Graceful Shutdown Protection**: When the server is stopping, individual disconnect saves are avoided to prevent shutdown freezes, letting the batch save process all pending data cleanly.
-- **Intelligent Background Task Lifecycle**: Background tasks (auto-saving and claim reminders) are now actively tracked and safely shut down during server stopping or reloading, preventing duplicate tasks and resource leaks.
-- **Config-Driven Reward Reminders**: Periodic reward alert intervals now adapt dynamically to the `checkReward` setting in `config.json`.
-- **Date & Reward Lookup Caching**: Optimized daily epoch calculations and reward queries into instant in-memory lookups, eliminating hundreds of redundant calendar and timezone calculations per second on the game loop.
-- **Thread-Safe Reward Delivery**: Player item deliveries and calendar menu updates are now safely dispatched to the server thread, preventing inventory concurrency issues.
-- **Architecture & Codebase Modernization**: Refactored internal classes to adhere to Single Responsibility and Clean Code standards, decomposing complex UI handlers and event registrations into modular, readable methods with zero dead code.
-- Added playtime placeholders (`%remaining%`, `%required%`, `%playtime%`) to item titles and lore in the calendar menu.
-- Upgraded CobbleUtils library to version 1.3.7 for better stability and connection handling.
-
-### Removed
-
-- **Redis Overhead**: Completely removed redundant Redis dependencies and pub/sub message listeners, keeping data synchronization clean, direct, and focused on the database.
+- **Standardized Operator Permissions (Level 2)**: Adjusted all administrative commands to standard operator permission level 2 (`ultracalendarreward.*`) instead of owner-only level 4.
+- **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group pending player updates into a single batch query instead of firing multiple individual queries.
+- **Dirty-Flag Change Tracking**: Tracks modified player data in memory, saving only players who actually have pending changes.
+- **Non-Blocking Player Disconnects**: Saving player data on quit is fully asynchronous, preventing server lag on player leaves.
+- **Graceful Shutdown Protection**: Skips individual quit saves when the server is stopping to prevent shutdown hangs, delegating final persistence to the batch save.
+- **Managed Background Tasks**: Auto-saving and reminder tasks are safely tracked and cancelled on server stop or reload.
+- **Dynamic Reminder Interval**: Periodic reward alert intervals adapt dynamically to the `checkReward` setting in `config.json`.
+- **In-Memory Reward and Timezone Caching**: Cached daily epoch and reward lookups in memory to avoid repetitive timezone calculations on the game loop.
+- **Thread-Safe Reward Delivery**: Reward item grants and command dispatches are safely executed on the server main thread.
+- **Architecture & Codebase Modernization**: Refactored internal code into cohesive `base` and `admin` command packages and decomposed monolithic UI methods into modular units.
+- Upgraded CobbleUtils library to version 1.3.7.
 
 ### Fixed
 
-- Removed silent errors across the mod, ensuring server administrators get clear warnings in the console if a timezone ID is invalid or a database operation fails.
+- Removed silent exceptions across the mod, ensuring clear logging in the console if a configuration error or database issue occurs.
 
 ## [2.0.2] - 2026-10-12
 
