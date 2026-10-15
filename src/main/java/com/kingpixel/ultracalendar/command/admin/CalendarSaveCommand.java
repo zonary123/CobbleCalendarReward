@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
@@ -19,7 +19,7 @@ public class CalendarSaveCommand {
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("save")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.save", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.save", 2))
         .executes(context -> {
           executeSave(context.getSource());
           return 1;
@@ -28,7 +28,7 @@ public class CalendarSaveCommand {
 
     base.then(
       CommandManager.literal("saveall")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.save", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.save", 2))
         .executes(context -> {
           executeSave(context.getSource());
           return 1;

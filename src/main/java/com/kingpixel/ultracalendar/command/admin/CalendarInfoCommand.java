@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
@@ -19,17 +19,19 @@ import net.minecraft.server.network.ServerPlayerEntity;
  */
 public class CalendarInfoCommand {
 
+  private static final String ARG_PLAYER = "player";
+
   private CalendarInfoCommand() {}
 
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("info")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.info", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.info", 2))
         .then(
-          CommandManager.argument("player", EntityArgumentType.player())
+          CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .executes(context -> {
               if (!UltraCalendar.config.isActive()) return 0;
-              ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+              ServerPlayerEntity player = EntityArgumentType.getPlayer(context, ARG_PLAYER);
               showInfo(context.getSource(), player);
               return 1;
             })

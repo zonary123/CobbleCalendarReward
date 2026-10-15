@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.api.PermissionApi;
@@ -28,7 +28,7 @@ public class CalendarClaimCommand {
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("claim")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.claim", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.claim", 2))
         .then(
           CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .executes(context -> {

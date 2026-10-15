@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
@@ -27,7 +27,7 @@ public class CalendarSetTimeCommand {
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("settime")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.settime", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.settime", 2))
         .then(
           CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .then(
@@ -45,7 +45,7 @@ public class CalendarSetTimeCommand {
 
     base.then(
       CommandManager.literal("addtime")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.settime", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.settime", 2))
         .then(
           CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .then(

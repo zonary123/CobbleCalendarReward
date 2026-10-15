@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.api.PermissionApi;
@@ -20,12 +20,14 @@ import java.util.List;
  */
 public class CalendarResetCommand {
 
+  private static final String ARG_PLAYER = "player";
+
   private CalendarResetCommand() {}
 
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("reset")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.reset", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.reset", 2))
         .executes(context -> {
           if (!UltraCalendar.config.isActive()) return 0;
           if (!context.getSource().isExecutedByPlayer()) {
@@ -37,10 +39,10 @@ public class CalendarResetCommand {
           return 1;
         })
         .then(
-          CommandManager.argument("player", EntityArgumentType.player())
+          CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .executes(context -> {
               if (!UltraCalendar.config.isActive()) return 0;
-              ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+              ServerPlayerEntity target = EntityArgumentType.getPlayer(context, ARG_PLAYER);
               resetPlayer(context.getSource(), target, true);
               return 1;
             })
@@ -49,7 +51,7 @@ public class CalendarResetCommand {
 
     base.then(
       CommandManager.literal("resetall")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.resetall", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.resetall", 2))
         .executes(context -> {
           if (!UltraCalendar.config.isActive()) return 0;
           resetAllPlayers(context.getSource());

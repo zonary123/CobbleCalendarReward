@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
@@ -15,19 +15,21 @@ import net.minecraft.server.network.ServerPlayerEntity;
  *
  * @author Carlos Varas Alonso
  */
-public class CalendarRewardCommand {
+public class CalendarOtherCommand {
 
-  private CalendarRewardCommand() {}
+  private static final String ARG_PLAYER = "player";
+
+  private CalendarOtherCommand() {}
 
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("other")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.other", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.other", 2))
         .then(
-          CommandManager.argument("player", EntityArgumentType.player())
+          CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
             .executes(context -> {
               if (!UltraCalendar.config.isActive()) return 0;
-              ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+              ServerPlayerEntity player = EntityArgumentType.getPlayer(context, ARG_PLAYER);
               if (player == null) {
                 CommandTree.sendMessage(context.getSource(), UltraCalendar.language.getMessageAdminPlayerNotFound());
                 return 0;

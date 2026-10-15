@@ -1,4 +1,4 @@
-package com.kingpixel.ultracalendar.command.base;
+package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
@@ -34,7 +34,7 @@ public class CalendarSetDayCommand {
 
     base.then(
       CommandManager.literal("setday")
-        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.setday", 4))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.setday", 2))
         // Syntax 1: /calendar setday <player> <day>
         .then(
           CommandManager.argument(ARG_PLAYER, EntityArgumentType.player())
