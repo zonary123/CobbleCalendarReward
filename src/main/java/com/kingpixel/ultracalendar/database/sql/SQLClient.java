@@ -54,6 +54,7 @@ public class SQLClient extends DatabaseClient {
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error flushing pending user data during SQL disconnect", e);
     }
+    USERS.invalidateAll();
   }
 
   @Override

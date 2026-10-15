@@ -30,6 +30,7 @@ public class JSONClient extends DatabaseClient {
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error flushing pending user data during JSON database disconnect", e);
     }
+    USERS.invalidateAll();
   }
 
   @Override

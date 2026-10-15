@@ -158,11 +158,15 @@ public class DailyRewardUI {
                 user.markDirty();
                 user.save();
 
-                if (reward.getRewards() != null) {
-                  reward.getRewards().giveRewards(player);
+                if (CobbleUtils.server != null && !CobbleUtils.server.isStopping()) {
+                  CobbleUtils.server.execute(() -> {
+                    if (player.isDisconnected()) return;
+                    if (reward.getRewards() != null) {
+                      reward.getRewards().giveRewards(player);
+                    }
+                    open(player);
+                  });
                 }
-
-                open(player);
               }
             }
           }),
@@ -221,7 +225,12 @@ public class DailyRewardUI {
           .build();
       }
 
-      CobbleUtils.server.execute(() -> UIManager.openUIForcefully(player, page));
+      if (CobbleUtils.server != null && !CobbleUtils.server.isStopping()) {
+        CobbleUtils.server.execute(() -> {
+          if (player.isDisconnected()) return;
+          UIManager.openUIForcefully(player, page);
+        });
+      }
     }, UltraCalendar.ASYNC::runAsync).exceptionally(throwable -> {
       UltraCalendar.LOGGER.error("Failed to open DailyRewardUI for {}", player.getGameProfile().getName(), throwable);
       return null;

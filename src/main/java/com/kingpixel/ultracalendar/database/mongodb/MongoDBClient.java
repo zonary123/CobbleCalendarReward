@@ -49,6 +49,7 @@ public class MongoDBClient extends DatabaseClient {
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error flushing pending user data during MongoDB disconnect", e);
     }
+    USERS.invalidateAll();
   }
 
   @Override

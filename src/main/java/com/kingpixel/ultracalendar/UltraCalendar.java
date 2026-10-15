@@ -28,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -51,10 +52,14 @@ public class UltraCalendar implements ModInitializer {
   }
 
 
+  private static ScheduledFuture<?> taskAlerts;
+  private static ScheduledFuture<?> taskAutoSave;
+  private static final AtomicBoolean serverStopping = new AtomicBoolean(false);
+
   public static void load() {
     files();
+    startTasks();
   }
-
 
   private static void files() {
     UtilsFile.registerAdapter(DurationValue.class, DurationValue.INSTANCE);
@@ -63,20 +68,18 @@ public class UltraCalendar implements ModInitializer {
     DatabaseClientFactory.createDatabaseClient(config.getDatabase());
   }
 
-  private static final AtomicBoolean serverStopping = new AtomicBoolean(false);
-
   private static void events() {
     load();
-    tasks();
     CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> CommandTree.register(dispatcher, registry));
 
     LifecycleEvent.SERVER_STOPPING.register(server -> {
       serverStopping.set(true);
+      stopTasks();
       if (database != null) database.disconnect();
     });
 
     CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(player -> {
-      if (!config.isActive()) return;
+      if (!config.isActive() || serverStopping.get()) return;
       User user = database.getUserDirect(player);
       if (user != null) {
         boolean canClaimBefore = user.canClaimNextReward();
@@ -105,7 +108,7 @@ public class UltraCalendar implements ModInitializer {
           if (user == null) return;
           DatabaseClient.USERS.put(player.getUuid(), user);
           user.onJoin(player);
-          sendAlert(user);
+          sendAlert(player, user);
         })
     );
 
@@ -126,52 +129,97 @@ public class UltraCalendar implements ModInitializer {
     });
   }
 
+  public static synchronized void startTasks() {
+    stopTasks();
 
-  private static void tasks() {
-    // Alert players
-    ASYNC.scheduleAtFixedRate(() -> DatabaseClient.USERS.asMap().values()
-      .forEach(UltraCalendar::sendAlert), 0, 15, TimeUnit.MINUTES);
-    // Save all players
-    ASYNC.scheduleAtFixedRate(() -> {
-      if (database == null) return;
+    // Auto save all dirty users every 1 minute
+    taskAutoSave = ASYNC.scheduleAtFixedRateWithFuture(() -> {
+      if (serverStopping.get() || database == null) return;
       database.saveAll();
     }, 1, 1, TimeUnit.MINUTES);
+
+    // Periodic claim alert for online players based on config
+    int alertInterval = config.getCheckReward();
+    if (alertInterval > 0) {
+      taskAlerts = ASYNC.scheduleAtFixedRateWithFuture(
+        UltraCalendar::runPeriodicAlerts,
+        alertInterval,
+        alertInterval,
+        TimeUnit.MINUTES
+      );
+    }
   }
 
-  private static void sendAlert(@NotNull User user) {
-    CobbleUtils.server.execute(() -> {
-      ServerPlayerEntity player = CobbleUtils.server.getPlayerManager().getPlayer(user.getUuid());
-      if (player == null) return;
+  public static synchronized void stopTasks() {
+    if (taskAutoSave != null && !taskAutoSave.isCancelled()) {
+      taskAutoSave.cancel(false);
+      taskAutoSave = null;
+    }
+    if (taskAlerts != null && !taskAlerts.isCancelled()) {
+      taskAlerts.cancel(false);
+      taskAlerts = null;
+    }
+  }
 
-      if (user.canClaimNextReward()) {
-        PlayerUtils.sendMessage(
-          player,
-          language.getMessageCanClaim(),
-          language.getPrefix(),
-          TypeMessage.CHAT
-        );
-      } else if (user.canClaim() && config.isSendPlayTimeAlertOnJoin()) {
-        Rewards nextReward = config.getReward(user.getDay() + 1);
-        if (nextReward != null) {
-          long requiredSeconds = nextReward.getRequiredTime().toSeconds();
-          long currentPlayTime = nextReward.isDailyTime() ? user.getDailyPlayTime() : user.getTotalPlayTime();
-          if (currentPlayTime < requiredSeconds) {
-            long remainingSeconds = Math.max(0, requiredSeconds - currentPlayTime);
-            String msg = language.getMessageJoinNeedPlayTime()
-              .replace("%prefix%", language.getPrefix())
-              .replace("%day%", String.valueOf(user.getDay() + 1))
-              .replace("%required%", DailyRewardUI.formatDuration(requiredSeconds))
-              .replace("%remaining%", DailyRewardUI.formatDuration(remainingSeconds))
-              .replace("%playtime%", DailyRewardUI.formatDuration(currentPlayTime));
-            PlayerUtils.sendMessage(player, msg, language.getPrefix(), TypeMessage.CHAT);
-          }
+  private static void runPeriodicAlerts() {
+    if (serverStopping.get() || CobbleUtils.server == null || CobbleUtils.server.isStopping() || !config.isActive()) {
+      return;
+    }
+    CobbleUtils.server.execute(() -> {
+      if (serverStopping.get() || CobbleUtils.server == null || CobbleUtils.server.isStopping() || !config.isActive()) {
+        return;
+      }
+      for (ServerPlayerEntity player : CobbleUtils.server.getPlayerManager().getPlayerList()) {
+        if (player.isDisconnected()) continue;
+        User user = database.getUserDirect(player);
+        if (user != null) {
+          sendAlert(player, user);
         }
       }
     });
   }
 
-  private static void sendPlayTimeCompletedAlert(@NotNull ServerPlayerEntity player, @NotNull User user) {
+  public static void sendAlert(@NotNull ServerPlayerEntity player, @NotNull User user) {
+    if (user.canClaimNextReward()) {
+      PlayerUtils.sendMessage(
+        player,
+        language.getMessageCanClaim(),
+        language.getPrefix(),
+        TypeMessage.CHAT
+      );
+    } else if (user.canClaim() && config.isSendPlayTimeAlertOnJoin()) {
+      Rewards nextReward = config.getReward(user.getDay() + 1);
+      if (nextReward != null) {
+        long requiredSeconds = nextReward.getRequiredTime().toSeconds();
+        long currentPlayTime = nextReward.isDailyTime() ? user.getDailyPlayTime() : user.getTotalPlayTime();
+        if (currentPlayTime < requiredSeconds) {
+          long remainingSeconds = Math.max(0, requiredSeconds - currentPlayTime);
+          String msg = language.getMessageJoinNeedPlayTime()
+            .replace("%prefix%", language.getPrefix())
+            .replace("%day%", String.valueOf(user.getDay() + 1))
+            .replace("%required%", DailyRewardUI.formatDuration(requiredSeconds))
+            .replace("%remaining%", DailyRewardUI.formatDuration(remainingSeconds))
+            .replace("%playtime%", DailyRewardUI.formatDuration(currentPlayTime));
+          PlayerUtils.sendMessage(player, msg, language.getPrefix(), TypeMessage.CHAT);
+        }
+      }
+    }
+  }
+
+  public static void sendAlert(@NotNull User user) {
+    if (CobbleUtils.server == null || CobbleUtils.server.isStopping() || serverStopping.get()) return;
     CobbleUtils.server.execute(() -> {
+      ServerPlayerEntity player = CobbleUtils.server.getPlayerManager().getPlayer(user.getUuid());
+      if (player != null && !player.isDisconnected()) {
+        sendAlert(player, user);
+      }
+    });
+  }
+
+  private static void sendPlayTimeCompletedAlert(@NotNull ServerPlayerEntity player, @NotNull User user) {
+    if (CobbleUtils.server == null || CobbleUtils.server.isStopping() || serverStopping.get()) return;
+    CobbleUtils.server.execute(() -> {
+      if (player.isDisconnected()) return;
       int nextDay = user.getDay() + 1;
       Rewards reward = config.getReward(nextDay);
       long requiredSeconds = reward != null ? reward.getRequiredTime().toSeconds() : 0;

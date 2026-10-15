@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced user data saving when disconnecting or changing servers to prevent playtime loss.
 - **Non-Blocking Player Disconnects**: Saving player data on quit is now fully asynchronous without freezing the server main thread.
 - **Graceful Shutdown Protection**: When the server is stopping, individual disconnect saves are avoided to prevent shutdown freezes, letting the batch save process all pending data cleanly.
+- **Intelligent Background Task Lifecycle**: Background tasks (auto-saving and claim reminders) are now actively tracked and safely shut down during server stopping or reloading, preventing duplicate tasks and resource leaks.
+- **Config-Driven Reward Reminders**: Periodic reward alert intervals now adapt dynamically to the `checkReward` setting in `config.json`.
+- **Date & Reward Lookup Caching**: Optimized daily epoch calculations and reward queries into instant in-memory lookups, eliminating hundreds of redundant calendar and timezone calculations per second on the game loop.
+- **Thread-Safe Reward Delivery**: Player item deliveries and calendar menu updates are now safely dispatched to the server thread, preventing inventory concurrency issues.
 - Added playtime placeholders (`%remaining%`, `%required%`, `%playtime%`) to item titles and lore in the calendar menu.
 - Upgraded CobbleUtils library to version 1.3.7 for better stability and connection handling.
 - **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group all pending player updates into a single batch request instead of firing multiple individual queries, drastically reducing database load.

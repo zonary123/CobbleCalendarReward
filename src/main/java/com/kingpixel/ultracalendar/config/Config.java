@@ -15,9 +15,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.time.ZoneId;
+import java.util.*;
 
 /**
  * @author Carlos Varas Alonso - 29/04/2024 0:14
@@ -40,6 +39,9 @@ public class Config {
   private short rows;
   private int checkReward;
   private List<Rewards> rewards;
+
+  private transient volatile java.time.ZoneId parsedZoneId;
+  private transient volatile java.util.Map<Integer, Rewards> rewardsByDay;
 
   public Config() {
     this.debug = false;
@@ -68,6 +70,8 @@ public class Config {
   }
 
   private void check() {
+    parsedZoneId = null;
+    rewardsByDay = null;
     if (resetMarginDays < 2) resetMarginDays = 2;
     if (defaultPlayTime == null) defaultPlayTime = DurationValue.ofMillis(0);
     if (timezone == null) timezone = "";
@@ -122,7 +126,7 @@ public class Config {
         return;
       }
 
-      LocalDate now = LocalDate.now();
+      LocalDate now = LocalDate.now(getParsedZoneId());
       String year = String.valueOf(now.getYear());
       String month2 = String.format("%02d", now.getMonthValue());
       String month1 = String.valueOf(now.getMonthValue());
@@ -155,22 +159,20 @@ public class Config {
         return;
       }
 
-      List<Integer> days = new ArrayList<>();
-      List<Integer> slots = new ArrayList<>();
+      Set<Integer> days = new HashSet<>();
+      Set<Integer> slots = new HashSet<>();
 
       for (Path file : jsonFiles) {
         try {
           Rewards reward = UtilsFile.read(file, Rewards.class);
           if (reward != null) {
             reward.check();
-            if (days.contains(reward.getDay())) {
-              UltraCalendar.LOGGER.warn("Duplicate day found in rewards file: " + file.toAbsolutePath());
+            if (!days.add(reward.getDay())) {
+              UltraCalendar.LOGGER.warn("Duplicate day {} found in rewards file: {}", reward.getDay(), file.toAbsolutePath());
             }
-            if (slots.contains(reward.getSlot())) {
-              UltraCalendar.LOGGER.warn("Duplicate slot found in rewards file: " + file.toAbsolutePath());
+            if (!slots.add(reward.getSlot())) {
+              UltraCalendar.LOGGER.warn("Duplicate slot {} found in rewards file: {}", reward.getSlot(), file.toAbsolutePath());
             }
-            days.add(reward.getDay());
-            slots.add(reward.getSlot());
             rewards.add(reward);
           }
         } catch (Exception e) {
@@ -179,6 +181,11 @@ public class Config {
       }
 
       rewards.sort(Comparator.comparingInt(Rewards::getDay));
+      Map<Integer, Rewards> map = new HashMap<>();
+      for (Rewards r : rewards) {
+        map.put(r.getDay(), r);
+      }
+      this.rewardsByDay = Map.copyOf(map);
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error reading rewards files for " + UltraCalendar.MOD_NAME, e);
     }
@@ -208,7 +215,31 @@ public class Config {
     return rewards == null ? 0 : rewards.size();
   }
 
+  public @NotNull ZoneId getParsedZoneId() {
+    if (parsedZoneId == null) {
+      synchronized (this) {
+        if (parsedZoneId == null) {
+          if (timezone != null && !timezone.isBlank()) {
+            try {
+              parsedZoneId = ZoneId.of(timezone.trim());
+            } catch (Exception e) {
+              UltraCalendar.LOGGER.warn("Invalid timezone ID '{}' in config, falling back to system default timezone: {}",
+                timezone, e.getMessage());
+              parsedZoneId = ZoneId.systemDefault();
+            }
+          } else {
+            parsedZoneId = ZoneId.systemDefault();
+          }
+        }
+      }
+    }
+    return parsedZoneId;
+  }
+
   public @Nullable Rewards getReward(int day) {
+    if (rewardsByDay != null) {
+      return rewardsByDay.get(day);
+    }
     if (rewards == null) return null;
     for (Rewards reward : rewards) {
       if (reward != null && reward.getDay() == day) return reward;

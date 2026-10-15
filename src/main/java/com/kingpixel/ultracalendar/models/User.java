@@ -72,27 +72,39 @@ public class User implements Serializable {
     markDirty();
   }
 
+  private static volatile long cachedTodayEpoch = 0;
+  private static volatile long lastEpochCheckMillis = 0;
+
   public static long getTodayEpoch() {
-    try {
-      if (UltraCalendar.config != null && UltraCalendar.config.getTimezone() != null && !UltraCalendar.config.getTimezone().isBlank()) {
-        return LocalDate.now(ZoneId.of(UltraCalendar.config.getTimezone())).toEpochDay();
-      }
-    } catch (Exception e) {
-      UltraCalendar.LOGGER.warn("Invalid timezone ID '{}' in config, falling back to system default timezone: {}",
-        UltraCalendar.config != null ? UltraCalendar.config.getTimezone() : "null", e.getMessage());
+    long now = System.currentTimeMillis();
+    if (now - lastEpochCheckMillis < 2000 && cachedTodayEpoch != 0) {
+      return cachedTodayEpoch;
     }
-    return LocalDate.now(ZoneId.systemDefault()).toEpochDay();
+    try {
+      ZoneId zone = (UltraCalendar.config != null) ? UltraCalendar.config.getParsedZoneId() : ZoneId.systemDefault();
+      cachedTodayEpoch = LocalDate.now(zone).toEpochDay();
+      lastEpochCheckMillis = now;
+      return cachedTodayEpoch;
+    } catch (Exception e) {
+      return LocalDate.now(ZoneId.systemDefault()).toEpochDay();
+    }
   }
 
   private long today() {
     return getTodayEpoch();
   }
 
-  public synchronized @NotNull AtomicBoolean getDirty() {
-    if (dirty == null) {
-      dirty = new AtomicBoolean(false);
+  public @NotNull AtomicBoolean getDirty() {
+    AtomicBoolean d = dirty;
+    if (d == null) {
+      synchronized (this) {
+        d = dirty;
+        if (d == null) {
+          dirty = d = new AtomicBoolean(false);
+        }
+      }
     }
-    return dirty;
+    return d;
   }
 
   public boolean isDirty() {
