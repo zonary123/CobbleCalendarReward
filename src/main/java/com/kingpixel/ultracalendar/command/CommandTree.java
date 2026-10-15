@@ -1,30 +1,29 @@
 package com.kingpixel.ultracalendar.command;
 
+import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
-import com.kingpixel.cobbleutils.util.LuckPermsUtil;
 import com.kingpixel.ultracalendar.UltraCalendar;
-import com.kingpixel.ultracalendar.command.base.CalendarResetCommand;
-import com.kingpixel.ultracalendar.command.base.CalendarRewardCommand;
-import com.kingpixel.ultracalendar.command.base.CalendarSetDayCommand;
+import com.kingpixel.ultracalendar.command.base.*;
 import com.kingpixel.ultracalendar.ui.DailyRewardUI;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
- * @author Carlos Varas Alonso - 10/06/2024 14:08
+ * Main command registry tree for UltraCalendar.
+ *
+ * @author Carlos Varas Alonso
  */
 public class CommandTree {
 
   private CommandTree() {}
 
-  public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registry) {
+  public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
     UltraCalendar.config.getCommands().forEach(literal -> {
       LiteralArgumentBuilder<ServerCommandSource> base = CommandManager.literal(literal)
-        .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.user"))
+        .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.user", 0))
         .executes(context -> {
           if (!context.getSource().isExecutedByPlayer()) {
             UltraCalendar.LOGGER.info("This command can only be executed by a player.");
@@ -39,19 +38,18 @@ public class CommandTree {
       CalendarRewardCommand.register(base);
       CalendarResetCommand.register(base);
       CalendarSetDayCommand.register(base);
+      CalendarSetTimeCommand.register(base);
+      CalendarClaimCommand.register(base);
+      CalendarInfoCommand.register(base);
+      CalendarSaveCommand.register(base);
+      CalendarHelpCommand.register(base);
 
       base.then(
         CommandManager.literal("reload")
-          .requires(source -> LuckPermsUtil.checkPermission(source, 4, "ultracalendarreward.reload"))
+          .requires(source -> PermissionApi.hasPermission(source, "ultracalendarreward.reload", 4))
           .executes(context -> {
-            if (context.getSource().isExecutedByPlayer()) {
-              context.getSource().getPlayer().sendMessage(
-                AdventureTranslator.toNative(UltraCalendar.language.getMessageReload()
-                  .replace("%prefix%", UltraCalendar.language.getPrefix())
-                )
-              );
-            }
             UltraCalendar.load();
+            sendMessage(context.getSource(), UltraCalendar.language.getMessageReload());
             return 1;
           })
       );
@@ -60,6 +58,13 @@ public class CommandTree {
     });
   }
 
-
+  /**
+   * Helper to send formatted text messages to any ServerCommandSource (player or console).
+   * Automatically replaces the %prefix% placeholder and formats Adventure MiniMessage tags.
+   */
+  public static void sendMessage(ServerCommandSource source, String message) {
+    if (source == null || message == null || message.isEmpty()) return;
+    String formatted = message.replace("%prefix%", UltraCalendar.language.getPrefix());
+    source.sendMessage(AdventureTranslator.toNative(formatted));
+  }
 }
-

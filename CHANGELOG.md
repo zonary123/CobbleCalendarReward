@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Daily and Total Playtime Options**: Rewards can now require either daily playtime or overall total playtime.
 - **Asynchronous Menu Loading**: Opening the reward calendar is now completely smooth and non-blocking, fetching player data asynchronously in the background so the server never freezes or stutters.
 - **Multi-Database Support & In-Memory Caching**: Modernized database structure with high-speed memory caching, offering full support for SQLite, MySQL, MariaDB, H2, and MongoDB via CobbleUtils services.
+- **Complete Administration Command Suite**: Added a full set of administration commands with rich in-game feedback and console support:
+  - `/calendar settime <player> <seconds>` and `/calendar addtime <player> <seconds>` to adjust daily playtime.
+  - `/calendar claim <player> [day]` to force claim rewards for players.
+  - `/calendar info <player>` to inspect player progress, playtime, and claim eligibility.
+  - `/calendar resetall` to reset progress for all online players simultaneously.
+  - `/calendar save` / `/calendar saveall` to immediately persist all pending data to the database.
+  - `/calendar help` to display available commands.
+  - Full feedback messages and console execution compatibility for `/calendar reset`, `/calendar setday`, and `/calendar reload`.
 
 ### Changed
 

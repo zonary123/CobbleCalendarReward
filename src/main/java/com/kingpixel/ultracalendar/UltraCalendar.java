@@ -69,7 +69,7 @@ public class UltraCalendar implements ModInitializer {
 
   private static void events() {
     load();
-    CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> CommandTree.register(dispatcher, registry));
+    CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> CommandTree.register(dispatcher));
     LifecycleEvent.SERVER_STOPPING.register(server -> handleServerStopping());
     CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(UltraCalendar::handlePlayTime);
     PlayerEvent.PLAYER_JOIN.register(UltraCalendar::handlePlayerJoin);
