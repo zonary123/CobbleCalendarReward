@@ -2,11 +2,14 @@ package com.kingpixel.ultracalendar.config;
 
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
+import com.kingpixel.cobbleutils.Model.DurationValue;
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.ultracalendar.UltraCalendar;
 import com.kingpixel.ultracalendar.models.Rewards;
 import lombok.Data;
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -27,8 +30,11 @@ public class Config {
   private boolean autoReset;
   private boolean autoPlace;
   private boolean sendMessageReset;
+  private boolean sendPlayTimeAlertOnJoin;
   private String lang;
+  private String timezone;
   private int resetMarginDays;
+  private DurationValue defaultPlayTime;
   private List<String> commands;
   private DataBaseConfig database;
   private short rows;
@@ -41,8 +47,11 @@ public class Config {
     this.autoReset = true;
     this.autoPlace = false;
     this.sendMessageReset = true;
+    this.sendPlayTimeAlertOnJoin = true;
     this.lang = "en";
+    this.timezone = "";
     this.resetMarginDays = 3;
+    this.defaultPlayTime = DurationValue.ofMillis(0);
     this.commands = new ArrayList<>();
     this.commands.add("calendar");
     this.commands.add("calendarreward");
@@ -60,6 +69,8 @@ public class Config {
 
   private void check() {
     if (resetMarginDays < 2) resetMarginDays = 2;
+    if (defaultPlayTime == null) defaultPlayTime = DurationValue.ofMillis(0);
+    if (timezone == null) timezone = "";
     if (commands == null || commands.isEmpty()) {
       commands = new ArrayList<>();
       commands.add("calendar");
@@ -195,5 +206,27 @@ public class Config {
 
   public int maxDay() {
     return rewards == null ? 0 : rewards.size();
+  }
+
+  public @Nullable Rewards getReward(int day) {
+    if (rewards == null) return null;
+    for (Rewards reward : rewards) {
+      if (reward != null && reward.getDay() == day) return reward;
+    }
+    return null;
+  }
+
+  public @NotNull DurationValue getDefaultPlayTime() {
+    if (defaultPlayTime == null) {
+      defaultPlayTime = DurationValue.ofMillis(0);
+    }
+    return defaultPlayTime;
+  }
+
+  public @NotNull List<Rewards> getRewards() {
+    if (rewards == null) {
+      rewards = new ArrayList<>();
+    }
+    return rewards;
   }
 }

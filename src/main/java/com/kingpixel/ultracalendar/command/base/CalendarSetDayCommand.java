@@ -10,7 +10,6 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
-import java.time.LocalDate;
 
 public class CalendarSetDayCommand {
 
@@ -37,7 +36,7 @@ public class CalendarSetDayCommand {
                   User user = UltraCalendar.database.getUser(player);
                   if (user == null) return 0;
 
-                  long today = LocalDate.now().toEpochDay();
+                  long today = User.getTodayEpoch();
 
                   user.setDay(Math.max(day, 0));
                   user.setLastJoin(today);
@@ -45,6 +44,8 @@ public class CalendarSetDayCommand {
 
                   user.markDirty();
                   user.fix();
+                  user.save();
+                  UltraCalendar.publishRedisInvalidation(player.getUuid());
 
                   return 1;
                 })

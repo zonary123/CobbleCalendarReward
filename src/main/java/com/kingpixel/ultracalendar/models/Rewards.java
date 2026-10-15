@@ -2,11 +2,15 @@ package com.kingpixel.ultracalendar.models;
 
 
 import com.kingpixel.cobbleutils.Model.AdvancedItemChance;
+import com.kingpixel.cobbleutils.Model.DurationValue;
 import com.kingpixel.cobbleutils.Model.ItemModel;
+import com.kingpixel.ultracalendar.UltraCalendar;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -20,15 +24,18 @@ import java.util.List;
 public class Rewards {
   private int day;
   private int slot;
-  private ItemModel claimed;
-  private ItemModel canClaim;
-  private ItemModel notClaimed;
-  private AdvancedItemChance rewards;
+  private boolean dailyTime = true;
+  private @Nullable DurationValue requiredTime;
+  private @Nullable ItemModel claimed;
+  private @Nullable ItemModel canClaim;
+  private @Nullable ItemModel notClaimed;
+  private @NotNull AdvancedItemChance rewards;
 
 
   public Rewards() {
     this.day = 1;
     this.slot = 0;
+    this.requiredTime = DurationValue.ofMillis(0);
     this.claimed = new ItemModel("minecraft:minecart");
     this.canClaim = new ItemModel("minecraft:minecart");
     this.notClaimed = new ItemModel("minecraft:chest_minecart");
@@ -38,6 +45,7 @@ public class Rewards {
   public Rewards(short day) {
     this.day = day;
     this.slot = 0;
+    this.requiredTime = DurationValue.ofMillis(0);
     this.claimed = new ItemModel("minecraft:minecart");
     this.canClaim = new ItemModel("minecraft:minecart");
     this.notClaimed = new ItemModel("minecraft:chest_minecart");
@@ -47,6 +55,7 @@ public class Rewards {
   public Rewards(int day, int slot) {
     this.day = day;
     this.slot = slot;
+    this.requiredTime = DurationValue.ofMillis(0);
     this.claimed = new ItemModel("", "Day %day%", List.of(
       "You have already claimed this reward."
     ));
@@ -60,9 +69,31 @@ public class Rewards {
     this.rewards.setTitle("Day " + day);
   }
 
+  public @NotNull DurationValue getRequiredTime() {
+    if (requiredTime != null) {
+      return requiredTime;
+    }
+    if (UltraCalendar.config != null && UltraCalendar.config.getDefaultPlayTime() != null) {
+      return UltraCalendar.config.getDefaultPlayTime();
+    }
+    return DurationValue.ofMillis(0);
+  }
+
   public void check() {
     if (canClaim == null) {
       canClaim = new ItemModel("minecraft:minecart");
+    }
+    if (claimed == null) {
+      claimed = new ItemModel("minecraft:minecart");
+    }
+    if (notClaimed == null) {
+      notClaimed = new ItemModel("minecraft:chest_minecart");
+    }
+    if (rewards == null) {
+      rewards = new AdvancedItemChance();
+    }
+    if (requiredTime == null) {
+      requiredTime = DurationValue.ofMillis(0);
     }
   }
 }

@@ -14,10 +14,12 @@ import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.database.DatabaseClient;
 import com.kingpixel.ultracalendar.models.Rewards;
 import com.kingpixel.ultracalendar.models.User;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +28,22 @@ import java.util.concurrent.TimeUnit;
 
 public class DailyRewardUI {
 
-  public static CompletableFuture<Void> open(ServerPlayerEntity player) {
+  public static CompletableFuture<Void> open(@NotNull ServerPlayerEntity player) {
     return UltraCalendar.ASYNC.runAsync(() -> {
 
-      User user = UltraCalendar.database.getUser(player);
-      if (user == null) return;
+      User loadedUser = UltraCalendar.database.getUser(player);
+      if (loadedUser == null) {
+        try {
+          loadedUser = UltraCalendar.database.findUser(player).get(3, TimeUnit.SECONDS);
+          if (loadedUser != null) {
+            DatabaseClient.USERS.put(player.getUuid(), loadedUser);
+          }
+        } catch (Exception ignored) {
+          // Timeout or interruption reading user
+        }
+      }
+      if (loadedUser == null) return;
+      final User user = loadedUser;
 
       int rows = UltraCalendar.config.getRows();
       ChestTemplate template = ChestTemplate.builder(rows).build();
@@ -39,19 +52,23 @@ public class DailyRewardUI {
       List<Button> buttons = new ArrayList<>();
 
       for (Rewards reward : UltraCalendar.config.getRewards()) {
-
+        if (reward == null) continue;
         if (!UltraCalendar.config.isActive()) return;
 
         int day = reward.getDay();
 
         boolean isClaimed = user.getDay() >= day;
-        boolean canClaim = user.canClaim() && user.getDay() + 1 == day;
+        boolean isNextDay = user.canClaim() && user.getDay() + 1 == day;
+        long requiredSeconds = reward.getRequiredTime() != null ? reward.getRequiredTime().toSeconds() : 0;
+        long currentPlayTime = reward.isDailyTime() ? user.getDailyPlayTime() : user.getTotalPlayTime();
+        boolean hasPlayTime = currentPlayTime >= requiredSeconds;
+        boolean canClaim = isNextDay && hasPlayTime;
 
         ItemModel model = reward.getNotClaimed();
         if (isClaimed) model = reward.getClaimed();
         if (canClaim) model = reward.getCanClaim();
 
-        if (model == null || model.getItem().isEmpty()) {
+        if (model == null || model.getItem() == null || model.getItem().isEmpty()) {
           model = isClaimed
             ? UltraCalendar.language.getGlobalClaimed()
             : canClaim
@@ -59,21 +76,56 @@ public class DailyRewardUI {
               : UltraCalendar.language.getGlobalNotClaimed();
         }
 
+        if (model == null) continue;
+
+        long remainingSeconds = Math.max(0, requiredSeconds - currentPlayTime);
+        String reqStr = formatDuration(requiredSeconds);
+        String remStr = formatDuration(remainingSeconds);
+        String playStr = formatDuration(currentPlayTime);
+        String dailyPlayStr = formatDuration(user.getDailyPlayTime());
+        String totalPlayStr = formatDuration(user.getTotalPlayTime());
+
+        List<String> lore = model.getLore();
+        if (lore != null) {
+          lore = lore.stream()
+            .map(line -> line == null ? "" : line
+              .replace("%day%", String.valueOf(day))
+              .replace("%required%", reqStr)
+              .replace("%remaining%", remStr)
+              .replace("%playtime%", playStr)
+              .replace("%daily_playtime%", dailyPlayStr)
+              .replace("%total_playtime%", totalPlayStr)
+            ).toList();
+        }
+
+        String rawDisplayName = model.getDisplayname() != null ? model.getDisplayname() : "";
+        String displayName = rawDisplayName
+          .replace("%day%", String.valueOf(day))
+          .replace("%required%", reqStr)
+          .replace("%remaining%", remStr)
+          .replace("%playtime%", playStr)
+          .replace("%daily_playtime%", dailyPlayStr)
+          .replace("%total_playtime%", totalPlayStr);
+
         RateLimitedButton button = model.getButton(
           1,
-          model.getDisplayname().replace("%day%", String.valueOf(day)),
-          null,
+          displayName,
+          lore,
           action -> UltraCalendar.ASYNC.runAsync(() -> {
 
             if (!UltraCalendar.config.isActive()) return;
 
             switch (action.getClickType()) {
 
-              case SHIFT_RIGHT_CLICK, RIGHT_CLICK -> reward.getRewards().openMenu(
-                player,
-                t -> {},
-                close -> {}
-              );
+              case SHIFT_RIGHT_CLICK, RIGHT_CLICK -> {
+                if (reward.getRewards() != null) {
+                  reward.getRewards().openMenu(
+                    player,
+                    t -> {},
+                    close -> {}
+                  );
+                }
+              }
 
               default -> {
 
@@ -88,7 +140,7 @@ public class DailyRewardUI {
                   return;
                 }
 
-                if (!canClaim) {
+                if (!isNextDay) {
                   action.getPlayer().sendMessage(
                     AdventureTranslator.toNative(
                       UltraCalendar.language.getMessageVerySoon()
@@ -99,9 +151,30 @@ public class DailyRewardUI {
                   return;
                 }
 
+                if (!hasPlayTime) {
+                  action.getPlayer().sendMessage(
+                    AdventureTranslator.toNative(
+                      UltraCalendar.language.getMessageNeedPlayTime()
+                        .replace("%prefix%", UltraCalendar.language.getPrefix())
+                        .replace("%day%", String.valueOf(day))
+                        .replace("%required%", reqStr)
+                        .replace("%remaining%", remStr)
+                        .replace("%playtime%", playStr)
+                        .replace("%daily_playtime%", dailyPlayStr)
+                        .replace("%total_playtime%", totalPlayStr)
+                    )
+                  );
+                  return;
+                }
+
                 user.claim();
                 user.markDirty();
-                reward.getRewards().giveRewards(player);
+                user.save();
+                UltraCalendar.publishRedisInvalidation(player.getUuid());
+
+                if (reward.getRewards() != null) {
+                  reward.getRewards().giveRewards(player);
+                }
 
                 open(player);
               }
@@ -161,6 +234,20 @@ public class DailyRewardUI {
 
       CobbleUtils.server.execute(() -> UIManager.openUIForcefully(player, page));
     });
+  }
+
+  public static String formatDuration(long seconds) {
+    if (seconds <= 0) return "0s";
+    long hours = seconds / 3600;
+    long minutes = (seconds % 3600) / 60;
+    long secs = seconds % 60;
+    if (hours > 0) {
+      return String.format("%dh %dm %ds", hours, minutes, secs);
+    } else if (minutes > 0) {
+      return String.format("%dm %ds", minutes, secs);
+    } else {
+      return String.format("%ds", secs);
+    }
   }
 }
 

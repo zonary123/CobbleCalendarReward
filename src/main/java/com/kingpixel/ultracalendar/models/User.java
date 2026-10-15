@@ -1,13 +1,17 @@
 package com.kingpixel.ultracalendar.models;
 
+import com.kingpixel.cobbleutils.Model.DurationValue;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultracalendar.UltraCalendar;
 import lombok.*;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,10 +29,12 @@ public class User implements Serializable {
   private int day;
   private long dayClaimed;
   private long lastJoin;
+  private long dailyPlayTime;
+  private long totalPlayTime;
 
-  private transient AtomicBoolean dirty = new AtomicBoolean(false);
+  private @Nullable transient AtomicBoolean dirty;
 
-  public User(ServerPlayerEntity player) {
+  public User(@NotNull ServerPlayerEntity player) {
     this.uuid = player.getUuid();
     this.name = player.getGameProfile().getName();
 
@@ -36,6 +42,8 @@ public class User implements Serializable {
     this.day = 0;
     this.dayClaimed = today - 1;
     this.lastJoin = today;
+    this.dailyPlayTime = 0;
+    this.totalPlayTime = 0;
   }
 
   public void setLastJoin(long lastJoin) {
@@ -43,11 +51,22 @@ public class User implements Serializable {
     markDirty();
   }
 
-  private long today() {
-    return LocalDate.now().toEpochDay();
+  public static long getTodayEpoch() {
+    try {
+      if (UltraCalendar.config != null && UltraCalendar.config.getTimezone() != null && !UltraCalendar.config.getTimezone().isBlank()) {
+        return LocalDate.now(ZoneId.of(UltraCalendar.config.getTimezone())).toEpochDay();
+      }
+    } catch (Exception ignored) {
+      // Fallback to local system clock on invalid timezone identifier
+    }
+    return LocalDate.now(ZoneId.systemDefault()).toEpochDay();
   }
 
-  public AtomicBoolean getDirty() {
+  private long today() {
+    return getTodayEpoch();
+  }
+
+  public @NotNull AtomicBoolean getDirty() {
     if (dirty == null) dirty = new AtomicBoolean(false);
     return dirty;
   }
@@ -56,8 +75,34 @@ public class User implements Serializable {
     getDirty().set(true);
   }
 
+  public void addPlayTime(long seconds) {
+    long today = today();
+    if (lastJoin != today) {
+      lastJoin = today;
+      dailyPlayTime = 0;
+    }
+    dailyPlayTime += seconds;
+    totalPlayTime += seconds;
+    markDirty();
+  }
+
   public boolean canClaim() {
     return today() > dayClaimed;
+  }
+
+  public boolean canClaim(@Nullable Rewards reward) {
+    if (!canClaim()) return false;
+    if (reward == null) return false;
+    DurationValue duration = reward.getRequiredTime();
+    long requiredSeconds = duration != null ? duration.toSeconds() : 0;
+    long currentPlayTime = reward.isDailyTime() ? dailyPlayTime : totalPlayTime;
+    return currentPlayTime >= requiredSeconds;
+  }
+
+  public boolean canClaimNextReward() {
+    if (!canClaim()) return false;
+    if (UltraCalendar.config == null || day >= UltraCalendar.config.maxDay()) return false;
+    return canClaim(UltraCalendar.config.getReward(day + 1));
   }
 
   public boolean claim() {
@@ -77,7 +122,7 @@ public class User implements Serializable {
     return today() - dayClaimed > 1;
   }
 
-  public void onJoin(ServerPlayerEntity player) {
+  public void onJoin(@NotNull ServerPlayerEntity player) {
     fix();
 
     long today = today();
@@ -94,11 +139,12 @@ public class User implements Serializable {
 
     if (lastJoin != today) {
       lastJoin = today;
+      dailyPlayTime = 0;
       markDirty();
     }
   }
 
-  public void reset(ServerPlayerEntity player, boolean completed) {
+  public void reset(@NotNull ServerPlayerEntity player, boolean completed) {
     long today = today();
 
     String message = completed
@@ -119,6 +165,7 @@ public class User implements Serializable {
     day = 0;
     dayClaimed = completed ? today : today - 1;
     lastJoin = today;
+    dailyPlayTime = 0;
 
     markDirty();
   }
@@ -130,6 +177,21 @@ public class User implements Serializable {
 
     if (day < 0) {
       day = 0;
+      changed = true;
+    }
+
+    if (dailyPlayTime < 0) {
+      dailyPlayTime = 0;
+      changed = true;
+    }
+
+    if (totalPlayTime < 0) {
+      totalPlayTime = 0;
+      changed = true;
+    }
+
+    if (totalPlayTime < dailyPlayTime) {
+      totalPlayTime = dailyPlayTime;
       changed = true;
     }
 
@@ -146,6 +208,7 @@ public class User implements Serializable {
     if (hasMissedDays() && UltraCalendar.config.isAutoReset()) {
       day = 0;
       dayClaimed = today - 1;
+      dailyPlayTime = 0;
       changed = true;
     }
 
@@ -159,7 +222,7 @@ public class User implements Serializable {
     }
   }
 
-  public CompletableFuture<Void> save() {
+  public @NotNull CompletableFuture<Void> save() {
     if (getDirty().compareAndSet(true, false)) return UltraCalendar.database.saveOrUpdateUser(this);
     return CompletableFuture.completedFuture(null);
   }
