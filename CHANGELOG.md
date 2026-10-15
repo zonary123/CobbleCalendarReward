@@ -13,11 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Login Playtime Reminders**: Added reminders when joining the server displaying how much playtime is still needed today.
 - **Configurable Timezone**: Added timezone option to synchronize daily calendar resets across servers in different regions.
 - **Daily and Total Playtime Options**: Rewards can now require either daily playtime or overall total playtime.
+- **Asynchronous Menu Loading**: Opening the reward calendar is now completely smooth and non-blocking, fetching player data asynchronously in the background so the server never freezes or stutters.
+- **Multi-Database Support & In-Memory Caching**: Modernized database structure with high-speed memory caching, offering full support for SQLite, MySQL, MariaDB, H2, and MongoDB via CobbleUtils services.
 
 ### Changed
 
 - Enhanced user data saving when disconnecting or changing servers to prevent playtime loss.
 - Added playtime placeholders (`%remaining%`, `%required%`, `%playtime%`) to item titles and lore in the calendar menu.
+- Upgraded CobbleUtils library to version 1.3.7 for better stability and connection handling.
+
+### Fixed
+
+- Removed silent errors across the mod, ensuring server administrators get clear warnings in the console if a timezone ID is invalid or a network sync message fails.
 
 ## [2.0.2] - 2026-10-12
 

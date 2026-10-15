@@ -11,12 +11,10 @@ import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
+import com.kingpixel.cobbleutils.util.ItemUtils;
 import com.kingpixel.cobbleutils.util.UIUtils;
-import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultracalendar.UltraCalendar;
-import com.kingpixel.ultracalendar.database.DatabaseClient;
 import com.kingpixel.ultracalendar.models.Rewards;
-import com.kingpixel.ultracalendar.models.User;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
@@ -28,22 +26,11 @@ import java.util.concurrent.TimeUnit;
 
 public class DailyRewardUI {
 
-  public static CompletableFuture<Void> open(@NotNull ServerPlayerEntity player) {
-    return UltraCalendar.ASYNC.runAsync(() -> {
+  private DailyRewardUI() {}
 
-      User loadedUser = UltraCalendar.database.getUser(player);
-      if (loadedUser == null) {
-        try {
-          loadedUser = UltraCalendar.database.findUser(player).get(3, TimeUnit.SECONDS);
-          if (loadedUser != null) {
-            DatabaseClient.USERS.put(player.getUuid(), loadedUser);
-          }
-        } catch (Exception ignored) {
-          // Timeout or interruption reading user
-        }
-      }
-      if (loadedUser == null) return;
-      final User user = loadedUser;
+  public static CompletableFuture<Void> open(@NotNull ServerPlayerEntity player) {
+    return UltraCalendar.database.getUser(player).thenAcceptAsync(user -> {
+      if (user == null || !UltraCalendar.config.isActive()) return;
 
       int rows = UltraCalendar.config.getRows();
       ChestTemplate template = ChestTemplate.builder(rows).build();
@@ -192,7 +179,7 @@ public class DailyRewardUI {
         }
       }
 
-      ItemStack fillItem = Utils.parseItemId(UltraCalendar.language.getFill());
+      ItemStack fillItem = ItemUtils.parseItemId(UltraCalendar.language.getFill());
       template.fill(GooeyButton.of(fillItem));
 
       ItemModel closeModel = UltraCalendar.language.getCloseButton();
@@ -200,7 +187,10 @@ public class DailyRewardUI {
       int closeSlot = (closeModel != null && closeModel.getSlot() > 0) ? closeModel.getSlot() : defaultCloseSlot;
 
       if (closeModel != null && !closeModel.getItem().isEmpty()) {
-        GooeyButton closeBtn = closeModel.getButton(action -> UIManager.closeUI(action.getPlayer()));
+        GooeyButton closeBtn = GooeyButton.builder()
+          .display(closeModel.getItemStack())
+          .onClick(action -> UIManager.closeUI(action.getPlayer()))
+          .build();
         if (closeModel.getSlot() > 0) {
           closeModel.applyTemplate(template, closeBtn);
         } else {
@@ -233,6 +223,9 @@ public class DailyRewardUI {
       }
 
       CobbleUtils.server.execute(() -> UIManager.openUIForcefully(player, page));
+    }, UltraCalendar.ASYNC::runAsync).exceptionally(throwable -> {
+      UltraCalendar.LOGGER.error("Failed to open DailyRewardUI for {}", player.getGameProfile().getName(), throwable);
+      return null;
     });
   }
 

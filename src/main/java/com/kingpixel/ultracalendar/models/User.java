@@ -56,8 +56,9 @@ public class User implements Serializable {
       if (UltraCalendar.config != null && UltraCalendar.config.getTimezone() != null && !UltraCalendar.config.getTimezone().isBlank()) {
         return LocalDate.now(ZoneId.of(UltraCalendar.config.getTimezone())).toEpochDay();
       }
-    } catch (Exception ignored) {
-      // Fallback to local system clock on invalid timezone identifier
+    } catch (Exception e) {
+      UltraCalendar.LOGGER.warn("Invalid timezone ID '{}' in config, falling back to system default timezone: {}",
+        UltraCalendar.config != null ? UltraCalendar.config.getTimezone() : "null", e.getMessage());
     }
     return LocalDate.now(ZoneId.systemDefault()).toEpochDay();
   }

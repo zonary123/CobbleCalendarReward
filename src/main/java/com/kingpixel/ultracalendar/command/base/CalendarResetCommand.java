@@ -2,7 +2,6 @@ package com.kingpixel.ultracalendar.command.base;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
-import com.kingpixel.ultracalendar.models.User;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -42,10 +41,13 @@ public class CalendarResetCommand implements Command<ServerCommandSource> {
 
   private static void reset(ServerPlayerEntity player) {
     if (player == null) return;
-    User user = UltraCalendar.database.getUser(player);
-    if (user == null) return;
-    user.reset(player, true);
-    user.markDirty();
+    UltraCalendar.database.getUser(player).thenAccept(user -> {
+      if (user == null) return;
+      user.reset(player, true);
+      user.markDirty();
+      user.save();
+      UltraCalendar.publishRedisInvalidation(player.getUuid());
+    });
   }
 
   @Override

@@ -13,6 +13,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 public class CalendarSetDayCommand {
 
+  private CalendarSetDayCommand() {}
+
   public static void register(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("setDay")
@@ -33,19 +35,20 @@ public class CalendarSetDayCommand {
                   ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
                   int day = IntegerArgumentType.getInteger(context, "day");
 
-                  User user = UltraCalendar.database.getUser(player);
-                  if (user == null) return 0;
+                  UltraCalendar.database.getUser(player).thenAccept(user -> {
+                    if (user == null) return;
 
-                  long today = User.getTodayEpoch();
+                    long today = User.getTodayEpoch();
 
-                  user.setDay(Math.max(day, 0));
-                  user.setLastJoin(today);
-                  user.setDayClaimed(today - 1);
+                    user.setDay(Math.max(day, 0));
+                    user.setLastJoin(today);
+                    user.setDayClaimed(today - 1);
 
-                  user.markDirty();
-                  user.fix();
-                  user.save();
-                  UltraCalendar.publishRedisInvalidation(player.getUuid());
+                    user.markDirty();
+                    user.fix();
+                    user.save();
+                    UltraCalendar.publishRedisInvalidation(player.getUuid());
+                  });
 
                   return 1;
                 })

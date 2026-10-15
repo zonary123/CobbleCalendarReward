@@ -76,7 +76,7 @@ public class UltraCalendar implements ModInitializer {
 
     CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(player -> {
       if (!config.isActive()) return;
-      User user = database.getUser(player);
+      User user = database.getUserDirect(player);
       if (user != null) {
         boolean canClaimBefore = user.canClaimNextReward();
         user.addPlayTime(1);
@@ -109,7 +109,7 @@ public class UltraCalendar implements ModInitializer {
     );
 
     PlayerEvent.PLAYER_QUIT.register(player -> {
-      User user = database.getUser(player);
+      User user = database.getUserDirect(player);
       if (user == null) return;
       user.setLastJoin(User.getTodayEpoch());
       user.markDirty();
@@ -201,8 +201,8 @@ public class UltraCalendar implements ModInitializer {
           mgr.publish("ultracalendar:user_sync", json);
         }
       }
-    } catch (Throwable ignored) {
-      // Redis messaging disabled or unavailable
+    } catch (Exception e) {
+      LOGGER.warn("Failed to publish Redis invalidation for UUID {}: {}", uuid, e.getMessage());
     }
   }
 
@@ -235,8 +235,8 @@ public class UltraCalendar implements ModInitializer {
                   }
                   DatabaseClient.USERS.invalidate(uuid);
                 }
-              } catch (Exception ignored) {
-                // Ignore malformed message
+              } catch (Exception e) {
+                LOGGER.warn("Failed to process incoming Redis user sync payload: {}", e.getMessage());
               }
             }
           });
