@@ -118,7 +118,6 @@ public class Config {
     rewards.clear();
 
     Path rootRewardsDir = UltraCalendar.getPath().resolve("rewards");
-
     try {
       if (!Files.exists(rootRewardsDir)) {
         Files.createDirectories(rootRewardsDir);
@@ -126,69 +125,77 @@ public class Config {
         return;
       }
 
-      LocalDate now = LocalDate.now(getParsedZoneId());
-      String year = String.valueOf(now.getYear());
-      String month2 = String.format("%02d", now.getMonthValue());
-      String month1 = String.valueOf(now.getMonthValue());
-
-      Path yearMonthDir2 = rootRewardsDir.resolve(year).resolve(month2);
-      Path yearMonthDir1 = rootRewardsDir.resolve(year).resolve(month1);
-
-      Path activeDir = null;
-      if (Files.exists(yearMonthDir2) && hasJsonFiles(yearMonthDir2)) {
-        activeDir = yearMonthDir2;
-      } else if (Files.exists(yearMonthDir1) && hasJsonFiles(yearMonthDir1)) {
-        activeDir = yearMonthDir1;
-      } else {
-        activeDir = rootRewardsDir;
-      }
-
-      List<Path> jsonFiles;
-      if (activeDir.equals(rootRewardsDir)) {
-        File[] files = activeDir.toFile().listFiles((dir, name) -> name.endsWith(".json"));
-        jsonFiles = new ArrayList<>();
-        if (files != null) {
-          for (File f : files) jsonFiles.add(f.toPath());
-        }
-      } else {
-        jsonFiles = UtilsFile.getAllJsonFiles(activeDir);
-      }
+      Path activeDir = determineActiveRewardsDir(rootRewardsDir);
+      List<Path> jsonFiles = resolveJsonFiles(activeDir, rootRewardsDir);
 
       if (jsonFiles.isEmpty()) {
         createRewards(activeDir);
         return;
       }
 
-      Set<Integer> days = new HashSet<>();
-      Set<Integer> slots = new HashSet<>();
-
-      for (Path file : jsonFiles) {
-        try {
-          Rewards reward = UtilsFile.read(file, Rewards.class);
-          if (reward != null) {
-            reward.check();
-            if (!days.add(reward.getDay())) {
-              UltraCalendar.LOGGER.warn("Duplicate day {} found in rewards file: {}", reward.getDay(), file.toAbsolutePath());
-            }
-            if (!slots.add(reward.getSlot())) {
-              UltraCalendar.LOGGER.warn("Duplicate slot {} found in rewards file: {}", reward.getSlot(), file.toAbsolutePath());
-            }
-            rewards.add(reward);
-          }
-        } catch (Exception e) {
-          UltraCalendar.LOGGER.error("Could not read reward file: " + file.toAbsolutePath(), e);
-        }
-      }
-
-      rewards.sort(Comparator.comparingInt(Rewards::getDay));
-      Map<Integer, Rewards> map = new HashMap<>();
-      for (Rewards r : rewards) {
-        map.put(r.getDay(), r);
-      }
-      this.rewardsByDay = Map.copyOf(map);
+      loadRewardsFromFiles(jsonFiles);
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error reading rewards files for " + UltraCalendar.MOD_NAME, e);
     }
+  }
+
+  private Path determineActiveRewardsDir(Path rootRewardsDir) {
+    LocalDate now = LocalDate.now(getParsedZoneId());
+    String year = String.valueOf(now.getYear());
+    String month2 = String.format("%02d", now.getMonthValue());
+    String month1 = String.valueOf(now.getMonthValue());
+
+    Path yearMonthDir2 = rootRewardsDir.resolve(year).resolve(month2);
+    Path yearMonthDir1 = rootRewardsDir.resolve(year).resolve(month1);
+
+    if (Files.exists(yearMonthDir2) && hasJsonFiles(yearMonthDir2)) {
+      return yearMonthDir2;
+    } else if (Files.exists(yearMonthDir1) && hasJsonFiles(yearMonthDir1)) {
+      return yearMonthDir1;
+    }
+    return rootRewardsDir;
+  }
+
+  private List<Path> resolveJsonFiles(Path activeDir, Path rootRewardsDir) {
+    if (activeDir.equals(rootRewardsDir)) {
+      File[] files = activeDir.toFile().listFiles((dir, name) -> name.endsWith(".json"));
+      List<Path> jsonFiles = new ArrayList<>();
+      if (files != null) {
+        for (File f : files) jsonFiles.add(f.toPath());
+      }
+      return jsonFiles;
+    }
+    return UtilsFile.getAllJsonFiles(activeDir);
+  }
+
+  private void loadRewardsFromFiles(List<Path> jsonFiles) {
+    Set<Integer> days = new HashSet<>();
+    Set<Integer> slots = new HashSet<>();
+
+    for (Path file : jsonFiles) {
+      try {
+        Rewards reward = UtilsFile.read(file, Rewards.class);
+        if (reward != null) {
+          reward.check();
+          if (!days.add(reward.getDay())) {
+            UltraCalendar.LOGGER.warn("Duplicate day {} found in rewards file: {}", reward.getDay(), file.toAbsolutePath());
+          }
+          if (!slots.add(reward.getSlot())) {
+            UltraCalendar.LOGGER.warn("Duplicate slot {} found in rewards file: {}", reward.getSlot(), file.toAbsolutePath());
+          }
+          rewards.add(reward);
+        }
+      } catch (Exception e) {
+        UltraCalendar.LOGGER.error("Could not read reward file: {}", file.toAbsolutePath(), e);
+      }
+    }
+
+    rewards.sort(Comparator.comparingInt(Rewards::getDay));
+    Map<Integer, Rewards> map = new HashMap<>();
+    for (Rewards r : rewards) {
+      map.put(r.getDay(), r);
+    }
+    this.rewardsByDay = Map.copyOf(map);
   }
 
   private boolean hasJsonFiles(Path dir) {

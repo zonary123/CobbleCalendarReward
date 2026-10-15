@@ -11,7 +11,6 @@ import com.kingpixel.ultracalendar.models.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -43,12 +42,12 @@ public class SQLClient extends DatabaseClient {
 
   @Override
   public void connect() {
-    UltraCalendar.LOGGER.info("Connected to SQL database (" + dbType + ") via CobbleUtils SQLService.");
+    UltraCalendar.LOGGER.info("Connected to SQL database ({}) via CobbleUtils SQLService.", dbType);
   }
 
   @Override
   public void disconnect() {
-    UltraCalendar.LOGGER.info("Disconnecting SQL database (" + dbType + ") and flushing pending saves...");
+    UltraCalendar.LOGGER.info("Disconnecting SQL database ({}) and flushing pending saves...", dbType);
     try {
       saveAll().join();
     } catch (Exception e) {
@@ -76,7 +75,7 @@ public class SQLClient extends DatabaseClient {
       },
       uuid.toString()
     ).exceptionally(throwable -> {
-      UltraCalendar.LOGGER.error("Error reading user with UUID " + uuid + " from SQL (" + dbType + ")", throwable);
+      UltraCalendar.LOGGER.error("Error reading user with UUID {} from SQL ({})", uuid, dbType, throwable);
       return null;
     });
   }
@@ -107,10 +106,9 @@ public class SQLClient extends DatabaseClient {
     if (users.size() == 1) {
       return saveOrUpdateUser(users.get(0));
     }
-    List<Object[]> paramsList = new ArrayList<>(users.size());
-    for (User user : users) {
-      paramsList.add(new Object[]{ user.getUuid().toString(), UtilsFile.getGson().toJson(user) });
-    }
+    List<Object[]> paramsList = users.stream()
+      .map(user -> new Object[]{ user.getUuid().toString(), UtilsFile.getGson().toJson(user) })
+      .toList();
     return sqlManager.runAsync(() -> {
       try {
         sqlManager.executeBatch(SQLSentences.saveOrUpdateUser(dbType), paramsList);

@@ -35,26 +35,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class UltraCalendar implements ModInitializer {
   public static final String MOD_ID = "ultracalendar";
   public static final String MOD_NAME = "UltraCalendar";
-  public static final String PATH = "/config/ultracalendar";
-  public static final String PATH_LANG = "/config/ultracalendar/lang/";
-  public static final String PATH_REWARDS = "/config/ultracalendar/rewards/";
   public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
+
   public static DatabaseClient database;
-  // Config and Lang
   public static Config config = new Config();
   public static Lang language = new Lang();
 
   public static final AsyncContext ASYNC = UtilsAsync.createContext(MOD_ID, MOD_NAME);
 
+  private static ScheduledFuture<?> taskAlerts;
+  private static ScheduledFuture<?> taskAutoSave;
+  private static final AtomicBoolean serverStopping = new AtomicBoolean(false);
+
+  @Getter
+  private static final Path path = CobbleUtils.getPath().resolve(MOD_ID);
+
   @Override
   public void onInitialize() {
     events();
   }
-
-
-  private static ScheduledFuture<?> taskAlerts;
-  private static ScheduledFuture<?> taskAutoSave;
-  private static final AtomicBoolean serverStopping = new AtomicBoolean(false);
 
   public static void load() {
     files();
@@ -71,74 +70,78 @@ public class UltraCalendar implements ModInitializer {
   private static void events() {
     load();
     CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> CommandTree.register(dispatcher, registry));
+    LifecycleEvent.SERVER_STOPPING.register(server -> handleServerStopping());
+    CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(UltraCalendar::handlePlayTime);
+    PlayerEvent.PLAYER_JOIN.register(UltraCalendar::handlePlayerJoin);
+    PlayerEvent.PLAYER_QUIT.register(UltraCalendar::handlePlayerQuit);
+  }
 
-    LifecycleEvent.SERVER_STOPPING.register(server -> {
-      serverStopping.set(true);
-      stopTasks();
-      if (database != null) database.disconnect();
-    });
+  private static void handleServerStopping() {
+    serverStopping.set(true);
+    stopTasks();
+    if (database != null) {
+      database.disconnect();
+    }
+  }
 
-    CobbleUtilsEvents.PLAY_TIME_EVENT.subscribe(player -> {
-      if (!config.isActive() || serverStopping.get()) return;
-      User user = database.getUserDirect(player);
-      if (user != null) {
-        boolean canClaimBefore = user.canClaimNextReward();
-        user.addPlayTime(1);
-        boolean canClaimAfter = user.canClaimNextReward();
-        if (!canClaimBefore && canClaimAfter) {
-          sendPlayTimeCompletedAlert(player, user);
-        }
-      }
-    });
+  private static void handlePlayTime(@NotNull ServerPlayerEntity player) {
+    if (!config.isActive() || serverStopping.get()) return;
+    User user = database.getUserDirect(player);
+    if (user == null) return;
 
-    PlayerEvent.PLAYER_JOIN.register(player ->
-      database.findUser(player)
-        .handle((user, throwable) -> {
-          if (throwable != null) {
-            Throwable cause = throwable.getCause();
-            if (cause instanceof JsonSyntaxException) {
-              return new User(player);
-            }
-            throwable.printStackTrace();
-            return null;
+    boolean canClaimBefore = user.canClaimNextReward();
+    user.addPlayTime(1);
+    boolean canClaimAfter = user.canClaimNextReward();
+    if (!canClaimBefore && canClaimAfter) {
+      sendPlayTimeCompletedAlert(player, user);
+    }
+  }
+
+  private static void handlePlayerJoin(@NotNull ServerPlayerEntity player) {
+    database.findUser(player)
+      .handle((user, throwable) -> {
+        if (throwable != null) {
+          if (throwable.getCause() instanceof JsonSyntaxException) {
+            return new User(player);
           }
-          return user != null ? user : new User(player);
-        })
-        .thenAccept(user -> {
-          if (user == null) return;
-          DatabaseClient.USERS.put(player.getUuid(), user);
-          user.onJoin(player);
-          sendAlert(player, user);
-        })
-    );
-
-    PlayerEvent.PLAYER_QUIT.register(player -> {
-      if (serverStopping.get() || (CobbleUtils.server != null && CobbleUtils.server.isStopping())) {
-        return;
-      }
-      User user = database.getUserDirect(player);
-      if (user == null) return;
-      user.setLastJoin(User.getTodayEpoch());
-      user.markDirty();
-      user.save().whenComplete((v, ex) -> {
-        if (ex != null) {
-          LOGGER.error("Error saving user data on disconnect for: {}", player.getGameProfile().getName(), ex);
+          LOGGER.error("Error reading user data on join for: {}", player.getGameProfile().getName(), throwable);
+          return null;
         }
-        DatabaseClient.USERS.invalidate(player.getUuid());
+        return user != null ? user : new User(player);
+      })
+      .thenAccept(user -> {
+        if (user == null) return;
+        DatabaseClient.USERS.put(player.getUuid(), user);
+        user.onJoin(player);
+        sendAlert(player, user);
       });
+  }
+
+  private static void handlePlayerQuit(@NotNull ServerPlayerEntity player) {
+    if (serverStopping.get() || (CobbleUtils.server != null && CobbleUtils.server.isStopping())) {
+      return;
+    }
+    User user = database.getUserDirect(player);
+    if (user == null) return;
+
+    user.setLastJoin(User.getTodayEpoch());
+    user.markDirty();
+    user.save().whenComplete((v, ex) -> {
+      if (ex != null) {
+        LOGGER.error("Error saving user data on disconnect for: {}", player.getGameProfile().getName(), ex);
+      }
+      DatabaseClient.USERS.invalidate(player.getUuid());
     });
   }
 
   public static synchronized void startTasks() {
     stopTasks();
 
-    // Auto save all dirty users every 1 minute
     taskAutoSave = ASYNC.scheduleAtFixedRateWithFuture(() -> {
       if (serverStopping.get() || database == null) return;
       database.saveAll();
     }, 1, 1, TimeUnit.MINUTES);
 
-    // Periodic claim alert for online players based on config
     int alertInterval = config.getCheckReward();
     if (alertInterval > 0) {
       taskAlerts = ASYNC.scheduleAtFixedRateWithFuture(
@@ -239,11 +242,4 @@ public class UltraCalendar implements ModInitializer {
       );
     });
   }
-
-
-
-  @Getter
-  private static final Path path = CobbleUtils.getPath().resolve(MOD_ID);
-
 }
-

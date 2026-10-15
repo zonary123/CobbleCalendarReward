@@ -67,7 +67,7 @@ public class MongoDBClient extends DatabaseClient {
         }
         return user;
       } catch (Exception e) {
-        UltraCalendar.LOGGER.error("Error reading user with UUID " + uuid + " from MongoDB", e);
+        UltraCalendar.LOGGER.error("Error reading user with UUID {} from MongoDB", uuid, e);
         return null;
       }
     });

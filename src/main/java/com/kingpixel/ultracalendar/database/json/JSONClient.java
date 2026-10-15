@@ -37,7 +37,7 @@ public class JSONClient extends DatabaseClient {
   public CompletableFuture<@Nullable User> findUser(@NotNull UUID uuid) {
     return UtilsFile.readAsync(getUserFile(uuid), User.class)
       .exceptionally(throwable -> {
-        UltraCalendar.LOGGER.error("Error reading JSON user file for UUID: " + uuid, throwable);
+        UltraCalendar.LOGGER.error("Error reading JSON user file for UUID: {}", uuid, throwable);
         return null;
       });
   }
@@ -46,7 +46,7 @@ public class JSONClient extends DatabaseClient {
   public CompletableFuture<Void> saveOrUpdateUser(@NotNull User user) {
     return UtilsFile.writeAsync(getUserFile(user.getUuid()), user)
       .exceptionally(throwable -> {
-        UltraCalendar.LOGGER.error("Error saving user " + user.getName() + " (" + user.getUuid() + ") to JSON file", throwable);
+        UltraCalendar.LOGGER.error("Error saving user {} ({}) to JSON file", user.getName(), user.getUuid(), throwable);
         return null;
       });
   }
