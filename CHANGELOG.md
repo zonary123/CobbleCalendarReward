@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.3] - 2026-10-15
+## [2.0.3] - 2026-10-16
 
 ### Added
 
@@ -17,16 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Database Support & In-Memory Caching**: Modernized database structure with high-speed memory caching, offering full support for SQLite, MySQL, MariaDB, H2, and MongoDB via CobbleUtils services.
 - **Complete Administration Command Suite**: Added a full set of administration commands with rich in-game feedback and console support:
   - `/calendar settime <player> <seconds>` and `/calendar addtime <player> <seconds>` to adjust daily playtime.
-  - `/calendar claim <player> [day]` to force claim rewards for players.
+  - `/calendar claim <player> [day]` to force claim rewards for players directly into their inventory.
   - `/calendar info <player>` to inspect player progress, playtime, and claim eligibility.
-  - `/calendar resetall` to reset progress for all online players simultaneously.
+  - `/calendar resetall` to reset progress for all online players simultaneously (ideal for new events or seasons).
   - `/calendar save` / `/calendar saveall` to immediately persist all pending data to the database.
   - `/calendar help` to display available commands.
+  - `/calendar other <player>` to open the calendar interface on behalf of another player.
   - Full feedback messages and console execution compatibility for `/calendar reset`, `/calendar setday`, and `/calendar reload`.
+- **Command Aliases for Players**: Added `/calendar open` and `/calendar gui` so players can open their calendar using explicit subcommands in addition to `/calendar`.
+- **Grouped Admin Command Namespace**: All administrative commands can now also be accessed under `/calendar admin <subcommand>` (e.g., `/calendar admin reset`, `/calendar admin reload`).
 
 ### Changed
 
-- Enhanced user data saving when disconnecting or changing servers to prevent playtime loss.
+- **Standardized Operator Permissions (Level 2)**: Adjusted all administrative commands from owner-only (level 4) to standard operator permission level 2 (`ultracalendarreward.*`), making them accessible to server staff and moderators.
+- **Command Architecture Modularization**: Restructured internal command logic into clean `base` and `admin` modules for improved stability and maintainability.
+- **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group all pending player updates into a single batch request instead of firing multiple individual queries, drastically reducing database load.
+- **Dirty-Flag Change Tracking**: The server now tracks exact player modifications in memory, ensuring only players with actual data changes are written to disk or the database.
 - **Non-Blocking Player Disconnects**: Saving player data on quit is now fully asynchronous without freezing the server main thread.
 - **Graceful Shutdown Protection**: When the server is stopping, individual disconnect saves are avoided to prevent shutdown freezes, letting the batch save process all pending data cleanly.
 - **Intelligent Background Task Lifecycle**: Background tasks (auto-saving and claim reminders) are now actively tracked and safely shut down during server stopping or reloading, preventing duplicate tasks and resource leaks.
@@ -34,11 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Date & Reward Lookup Caching**: Optimized daily epoch calculations and reward queries into instant in-memory lookups, eliminating hundreds of redundant calendar and timezone calculations per second on the game loop.
 - **Thread-Safe Reward Delivery**: Player item deliveries and calendar menu updates are now safely dispatched to the server thread, preventing inventory concurrency issues.
 - **Architecture & Codebase Modernization**: Refactored internal classes to adhere to Single Responsibility and Clean Code standards, decomposing complex UI handlers and event registrations into modular, readable methods with zero dead code.
-- **Command Architecture & Standardized OP Permissions**: Reorganized command classes into distinct `base` and `admin` packages with support for both `/calendar <cmd>` and `/calendar admin <cmd>`, adjusting all administrative permission requirements to standard OP level 2.
 - Added playtime placeholders (`%remaining%`, `%required%`, `%playtime%`) to item titles and lore in the calendar menu.
 - Upgraded CobbleUtils library to version 1.3.7 for better stability and connection handling.
-- **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group all pending player updates into a single batch request instead of firing multiple individual queries, drastically reducing database load.
-- **Dirty-Flag Change Tracking**: The server now tracks exact player modifications in memory, ensuring only players with actual data changes are written to disk or the database.
 
 ### Removed
 
