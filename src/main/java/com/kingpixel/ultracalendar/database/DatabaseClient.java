@@ -7,6 +7,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -83,11 +85,28 @@ public abstract class DatabaseClient {
   public abstract CompletableFuture<Void> saveOrUpdateUser(@NotNull User user);
 
   /**
-   * Saves all dirty users currently in the cache.
+   * Asynchronously saves or updates multiple users in a single batch operation.
+   */
+  public abstract CompletableFuture<Void> saveOrUpdateUsers(@NotNull List<User> users);
+
+  /**
+   * Saves all dirty users currently in the cache in a single batch request.
    */
   public CompletableFuture<Void> saveAll() {
-    return CompletableFuture.allOf(USERS.asMap().values().stream()
-      .map(User::save)
-      .toArray(CompletableFuture[]::new));
+    List<User> dirtyUsers = new ArrayList<>();
+    for (User user : USERS.asMap().values()) {
+      if (user.getDirty().compareAndSet(true, false)) {
+        dirtyUsers.add(user);
+      }
+    }
+    if (dirtyUsers.isEmpty()) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return saveOrUpdateUsers(dirtyUsers).exceptionally(throwable -> {
+      for (User user : dirtyUsers) {
+        user.markDirty();
+      }
+      return null;
+    });
   }
 }

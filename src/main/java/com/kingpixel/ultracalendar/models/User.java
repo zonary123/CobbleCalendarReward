@@ -32,7 +32,7 @@ public class User implements Serializable {
   private long dailyPlayTime;
   private long totalPlayTime;
 
-  private @Nullable transient AtomicBoolean dirty;
+  private transient volatile AtomicBoolean dirty;
 
   public User(@NotNull ServerPlayerEntity player) {
     this.uuid = player.getUuid();
@@ -44,10 +44,31 @@ public class User implements Serializable {
     this.lastJoin = today;
     this.dailyPlayTime = 0;
     this.totalPlayTime = 0;
+    markDirty();
+  }
+
+  public void setDay(int day) {
+    this.day = day;
+    markDirty();
+  }
+
+  public void setDayClaimed(long dayClaimed) {
+    this.dayClaimed = dayClaimed;
+    markDirty();
   }
 
   public void setLastJoin(long lastJoin) {
     this.lastJoin = lastJoin;
+    markDirty();
+  }
+
+  public void setDailyPlayTime(long dailyPlayTime) {
+    this.dailyPlayTime = dailyPlayTime;
+    markDirty();
+  }
+
+  public void setTotalPlayTime(long totalPlayTime) {
+    this.totalPlayTime = totalPlayTime;
     markDirty();
   }
 
@@ -67,13 +88,23 @@ public class User implements Serializable {
     return getTodayEpoch();
   }
 
-  public @NotNull AtomicBoolean getDirty() {
-    if (dirty == null) dirty = new AtomicBoolean(false);
+  public synchronized @NotNull AtomicBoolean getDirty() {
+    if (dirty == null) {
+      dirty = new AtomicBoolean(false);
+    }
     return dirty;
+  }
+
+  public boolean isDirty() {
+    return dirty != null && dirty.get();
   }
 
   public void markDirty() {
     getDirty().set(true);
+  }
+
+  public void clearDirty() {
+    if (dirty != null) dirty.set(false);
   }
 
   public void addPlayTime(long seconds) {
@@ -224,7 +255,13 @@ public class User implements Serializable {
   }
 
   public @NotNull CompletableFuture<Void> save() {
-    if (getDirty().compareAndSet(true, false)) return UltraCalendar.database.saveOrUpdateUser(this);
+    if (getDirty().compareAndSet(true, false)) {
+      return UltraCalendar.database.saveOrUpdateUser(this)
+        .exceptionally(throwable -> {
+          markDirty();
+          return null;
+        });
+    }
     return CompletableFuture.completedFuture(null);
   }
 }

@@ -8,11 +8,15 @@ import com.kingpixel.ultracalendar.database.DatabaseClient;
 import com.kingpixel.ultracalendar.models.User;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.WriteModel;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -83,7 +87,34 @@ public class MongoDBClient extends DatabaseClient {
           new ReplaceOptions().upsert(true)
         );
       } catch (Exception e) {
-        UltraCalendar.LOGGER.error("Error saving user " + user.getName() + " (" + user.getUuid() + ") to MongoDB", e);
+        UltraCalendar.LOGGER.error("Error saving user {} ({}) to MongoDB", user.getName(), user.getUuid(), e);
+      }
+    });
+  }
+
+  @Override
+  public CompletableFuture<Void> saveOrUpdateUsers(@NotNull List<User> users) {
+    if (mongoCollection == null || users.isEmpty()) {
+      return CompletableFuture.completedFuture(null);
+    }
+    if (users.size() == 1) {
+      return saveOrUpdateUser(users.get(0));
+    }
+    return UltraCalendar.ASYNC.runAsync(() -> {
+      try {
+        List<WriteModel<Document>> operations = new ArrayList<>(users.size());
+        for (User user : users) {
+          Document doc = Document.parse(UtilsFile.getGson().toJson(user));
+          doc.put("uuid", user.getUuid().toString());
+          operations.add(new ReplaceOneModel<>(
+            Filters.eq("uuid", user.getUuid().toString()),
+            doc,
+            new ReplaceOptions().upsert(true)
+          ));
+        }
+        mongoCollection.bulkWrite(operations);
+      } catch (Exception e) {
+        UltraCalendar.LOGGER.error("Error bulk saving {} users to MongoDB", users.size(), e);
       }
     });
   }

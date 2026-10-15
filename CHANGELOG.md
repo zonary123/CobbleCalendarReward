@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced user data saving when disconnecting or changing servers to prevent playtime loss.
 - Added playtime placeholders (`%remaining%`, `%required%`, `%playtime%`) to item titles and lore in the calendar menu.
 - Upgraded CobbleUtils library to version 1.3.7 for better stability and connection handling.
+- **Single-Query Batch Saving (`saveAll`)**: Periodic background saves now group all pending player updates into a single batch request instead of firing multiple individual queries, drastically reducing database load.
+- **Dirty-Flag Change Tracking**: The server now tracks exact player modifications in memory, ensuring only players with actual data changes are written to disk or the database.
 
 ### Fixed
 

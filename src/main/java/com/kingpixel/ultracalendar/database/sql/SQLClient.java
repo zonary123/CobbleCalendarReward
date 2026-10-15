@@ -11,6 +11,8 @@ import com.kingpixel.ultracalendar.models.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -91,8 +93,30 @@ public class SQLClient extends DatabaseClient {
     ).thenAccept(rows -> {
       // Successfully updated rows
     }).exceptionally(throwable -> {
-      UltraCalendar.LOGGER.error("Error saving user " + user.getName() + " (" + user.getUuid() + ") to SQL (" + dbType + ")", throwable);
+      UltraCalendar.LOGGER.error("Error saving user {} ({}) to SQL ({})", user.getName(), user.getUuid(), dbType, throwable);
       return null;
+    });
+  }
+
+  @Override
+  public CompletableFuture<Void> saveOrUpdateUsers(@NotNull List<User> users) {
+    if (sqlManager == null || users.isEmpty()) {
+      return CompletableFuture.completedFuture(null);
+    }
+    if (users.size() == 1) {
+      return saveOrUpdateUser(users.get(0));
+    }
+    List<Object[]> paramsList = new ArrayList<>(users.size());
+    for (User user : users) {
+      paramsList.add(new Object[]{ user.getUuid().toString(), UtilsFile.getGson().toJson(user) });
+    }
+    return sqlManager.runAsync(() -> {
+      try {
+        sqlManager.executeBatch(SQLSentences.saveOrUpdateUser(dbType), paramsList);
+      } catch (Exception e) {
+        UltraCalendar.LOGGER.error("Error executing batch save for {} users in SQL ({})", users.size(), dbType, e);
+        throw e;
+      }
     });
   }
 

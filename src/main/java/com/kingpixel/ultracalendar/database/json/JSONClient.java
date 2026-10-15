@@ -8,11 +8,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * JSON file-based database client implementation.
+ * JSON file-based database client implementation with batch saving support.
  */
 public class JSONClient extends DatabaseClient {
 
@@ -47,6 +48,17 @@ public class JSONClient extends DatabaseClient {
         UltraCalendar.LOGGER.error("Error saving user " + user.getName() + " (" + user.getUuid() + ") to JSON file", throwable);
         return null;
       });
+  }
+
+  @Override
+  public CompletableFuture<Void> saveOrUpdateUsers(@NotNull List<User> users) {
+    if (users.isEmpty()) {
+      return CompletableFuture.completedFuture(null);
+    }
+    CompletableFuture<?>[] futures = users.stream()
+      .map(this::saveOrUpdateUser)
+      .toArray(CompletableFuture[]::new);
+    return CompletableFuture.allOf(futures);
   }
 
   private Path getUserFile(@NotNull UUID uuid) {
