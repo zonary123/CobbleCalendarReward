@@ -5,6 +5,7 @@ import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.cobbleutils.Model.DurationValue;
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.models.CalendarMode;
 import com.kingpixel.ultracalendar.models.Rewards;
 import lombok.Data;
 import lombok.ToString;
@@ -26,6 +27,7 @@ import java.util.*;
 public class Config {
   private boolean debug;
   private boolean active;
+  private CalendarMode mode;
   private boolean autoReset;
   private boolean autoPlace;
   private boolean sendMessageReset;
@@ -40,12 +42,13 @@ public class Config {
   private int checkReward;
   private List<Rewards> rewards;
 
-  private transient volatile java.time.ZoneId parsedZoneId;
-  private transient volatile java.util.Map<Integer, Rewards> rewardsByDay;
+  private transient volatile ZoneId parsedZoneId;
+  private transient volatile Map<Integer, Rewards> rewardsByDay;
 
   public Config() {
     this.debug = false;
     this.active = true;
+    this.mode = CalendarMode.MONTH_DAY;
     this.autoReset = true;
     this.autoPlace = false;
     this.sendMessageReset = true;
@@ -72,6 +75,7 @@ public class Config {
   private void check() {
     parsedZoneId = null;
     rewardsByDay = null;
+    if (mode == null) mode = CalendarMode.MONTH_DAY;
     if (resetMarginDays < 2) resetMarginDays = 2;
     if (defaultPlayTime == null) defaultPlayTime = DurationValue.ofMillis(0);
     if (timezone == null) timezone = "";
@@ -206,13 +210,16 @@ public class Config {
   private void createRewards(Path dir) {
     try {
       Files.createDirectories(dir);
+      Map<Integer, Rewards> map = new HashMap<>();
       for (int day = 1; day <= 31; day++) {
         Rewards reward = new Rewards(day, day - 1);
         UtilsFile.writeAsync(dir.resolve(day + ".json"), reward);
         if (this.rewards != null) {
           this.rewards.add(reward);
         }
+        map.put(reward.getDay(), reward);
       }
+      this.rewardsByDay = Map.copyOf(map);
     } catch (Exception e) {
       UltraCalendar.LOGGER.error("Error creating default rewards for " + UltraCalendar.MOD_NAME, e);
     }

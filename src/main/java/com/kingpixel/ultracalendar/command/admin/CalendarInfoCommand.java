@@ -50,8 +50,8 @@ public class CalendarInfoCommand {
 
       long today = User.getTodayEpoch();
       boolean claimedToday = user.getDayClaimed() >= today;
-      int nextDay = user.getDay() + 1;
-      Rewards nextReward = UltraCalendar.config.getReward(nextDay);
+      int targetDay = user.getTargetDay();
+      Rewards nextReward = UltraCalendar.config.getReward(targetDay);
       long requiredSeconds = nextReward != null ? nextReward.getRequiredTime().toSeconds() : 0;
       long dailyPlayTime = user.getDailyPlayTime();
       long totalPlayTime = user.getTotalPlayTime();

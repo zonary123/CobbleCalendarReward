@@ -61,6 +61,7 @@ public class UltraCalendar implements ModInitializer {
   }
 
   private static void files() {
+    UtilsFile.extractWiki(UltraCalendar.class, path);
     UtilsFile.registerAdapter(DurationValue.class, DurationValue.INSTANCE);
     config.init();
     language.init();
@@ -191,7 +192,8 @@ public class UltraCalendar implements ModInitializer {
         TypeMessage.CHAT
       );
     } else if (user.canClaim() && config.isSendPlayTimeAlertOnJoin()) {
-      Rewards nextReward = config.getReward(user.getDay() + 1);
+      int targetDay = user.getTargetDay();
+      Rewards nextReward = config.getReward(targetDay);
       if (nextReward != null) {
         long requiredSeconds = nextReward.getRequiredTime().toSeconds();
         long currentPlayTime = nextReward.isDailyTime() ? user.getDailyPlayTime() : user.getTotalPlayTime();
@@ -199,7 +201,7 @@ public class UltraCalendar implements ModInitializer {
           long remainingSeconds = Math.max(0, requiredSeconds - currentPlayTime);
           String msg = language.getMessageJoinNeedPlayTime()
             .replace("%prefix%", language.getPrefix())
-            .replace("%day%", String.valueOf(user.getDay() + 1))
+            .replace("%day%", String.valueOf(targetDay))
             .replace("%required%", DailyRewardUI.formatDuration(requiredSeconds))
             .replace("%remaining%", DailyRewardUI.formatDuration(remainingSeconds))
             .replace("%playtime%", DailyRewardUI.formatDuration(currentPlayTime));
@@ -223,14 +225,14 @@ public class UltraCalendar implements ModInitializer {
     if (CobbleUtils.server == null || CobbleUtils.server.isStopping() || serverStopping.get()) return;
     CobbleUtils.server.execute(() -> {
       if (player.isDisconnected()) return;
-      int nextDay = user.getDay() + 1;
-      Rewards reward = config.getReward(nextDay);
+      int targetDay = user.getTargetDay();
+      Rewards reward = config.getReward(targetDay);
       long requiredSeconds = reward != null ? reward.getRequiredTime().toSeconds() : 0;
       long currentPlayTime = reward != null && !reward.isDailyTime() ? user.getTotalPlayTime() : user.getDailyPlayTime();
 
       String message = language.getMessagePlayTimeCompleted()
         .replace("%prefix%", language.getPrefix())
-        .replace("%day%", String.valueOf(nextDay))
+        .replace("%day%", String.valueOf(targetDay))
         .replace("%required%", DailyRewardUI.formatDuration(requiredSeconds))
         .replace("%playtime%", DailyRewardUI.formatDuration(currentPlayTime));
 

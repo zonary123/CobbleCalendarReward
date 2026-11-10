@@ -59,7 +59,7 @@ public class CalendarClaimCommand {
 
     UltraCalendar.database.getUser(player).thenAccept(user -> {
       if (user == null) return;
-      int nextDay = user.getDay() + 1;
+      int nextDay = user.getTargetDay();
       executeClaim(source, player, user, nextDay);
     });
   }
@@ -87,6 +87,9 @@ public class CalendarClaimCommand {
 
     long today = User.getTodayEpoch();
     user.setDay(day);
+    if (!user.getClaimedDays().contains(day)) {
+      user.getClaimedDays().add(day);
+    }
     user.setDayClaimed(today);
     user.setLastJoin(today);
     user.markDirty();

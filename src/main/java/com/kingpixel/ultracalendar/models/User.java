@@ -12,6 +12,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,6 +33,8 @@ public class User implements Serializable {
   private long lastJoin;
   private long dailyPlayTime;
   private long totalPlayTime;
+  private String lastMonth;
+  private List<Integer> claimedDays;
 
   private transient volatile AtomicBoolean dirty;
 
@@ -44,7 +48,16 @@ public class User implements Serializable {
     this.lastJoin = today;
     this.dailyPlayTime = 0;
     this.totalPlayTime = 0;
+    this.lastMonth = getCurrentYearMonth();
+    this.claimedDays = new ArrayList<>();
     markDirty();
+  }
+
+  public @NotNull List<Integer> getClaimedDays() {
+    if (claimedDays == null) {
+      claimedDays = new ArrayList<>();
+    }
+    return claimedDays;
   }
 
   public void setDay(int day) {
@@ -72,6 +85,11 @@ public class User implements Serializable {
     markDirty();
   }
 
+  public void setLastMonth(String lastMonth) {
+    this.lastMonth = lastMonth;
+    markDirty();
+  }
+
   private static volatile long cachedTodayEpoch = 0;
   private static volatile long lastEpochCheckMillis = 0;
 
@@ -87,6 +105,26 @@ public class User implements Serializable {
       return cachedTodayEpoch;
     } catch (Exception e) {
       return LocalDate.now(ZoneId.systemDefault()).toEpochDay();
+    }
+  }
+
+  public static int getTodayDayOfMonth() {
+    ZoneId zone = (UltraCalendar.config != null) ? UltraCalendar.config.getParsedZoneId() : ZoneId.systemDefault();
+    try {
+      return LocalDate.now(zone).getDayOfMonth();
+    } catch (Exception e) {
+      return LocalDate.now(ZoneId.systemDefault()).getDayOfMonth();
+    }
+  }
+
+  public static String getCurrentYearMonth() {
+    ZoneId zone = (UltraCalendar.config != null) ? UltraCalendar.config.getParsedZoneId() : ZoneId.systemDefault();
+    try {
+      LocalDate now = LocalDate.now(zone);
+      return now.getYear() + "-" + String.format("%02d", now.getMonthValue());
+    } catch (Exception e) {
+      LocalDate now = LocalDate.now(ZoneId.systemDefault());
+      return now.getYear() + "-" + String.format("%02d", now.getMonthValue());
     }
   }
 
@@ -130,13 +168,44 @@ public class User implements Serializable {
     markDirty();
   }
 
+  public int getTargetDay() {
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      return getTodayDayOfMonth();
+    }
+    return this.day + 1;
+  }
+
+  public boolean isClaimed(int day) {
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      return getClaimedDays().contains(day);
+    }
+    return this.day >= day;
+  }
+
+  public boolean isAvailableDay(int day) {
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      int todayDay = getTodayDayOfMonth();
+      if (day > todayDay) return false;
+      if (day == todayDay) return true;
+      int margin = UltraCalendar.config.getResetMarginDays();
+      return (todayDay - day) <= margin;
+    }
+    return canClaim() && (this.day + 1 == day);
+  }
+
   public boolean canClaim() {
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      return !isClaimed(getTodayDayOfMonth());
+    }
     return today() > dayClaimed;
   }
 
   public boolean canClaim(@Nullable Rewards reward) {
-    if (!canClaim()) return false;
     if (reward == null) return false;
+    int rewardDay = reward.getDay();
+    if (isClaimed(rewardDay)) return false;
+    if (!isAvailableDay(rewardDay)) return false;
+
     DurationValue duration = reward.getRequiredTime();
     long requiredSeconds = duration != null ? duration.toSeconds() : 0;
     long currentPlayTime = reward.isDailyTime() ? dailyPlayTime : totalPlayTime;
@@ -144,43 +213,85 @@ public class User implements Serializable {
   }
 
   public boolean canClaimNextReward() {
-    if (!canClaim()) return false;
-    if (UltraCalendar.config == null || day >= UltraCalendar.config.maxDay()) return false;
+    if (UltraCalendar.config == null) return false;
+    if (UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      return canClaim(UltraCalendar.config.getReward(getTodayDayOfMonth()));
+    }
+    if (day >= UltraCalendar.config.maxDay()) return false;
     return canClaim(UltraCalendar.config.getReward(day + 1));
   }
 
   public boolean claim() {
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      return claim(UltraCalendar.config.getReward(getTodayDayOfMonth()));
+    }
+    int nextDay = this.day + 1;
+    Rewards reward = (UltraCalendar.config != null) ? UltraCalendar.config.getReward(nextDay) : null;
+    return claim(reward);
+  }
+
+  public boolean claim(@Nullable Rewards reward) {
+    if (reward == null || !canClaim(reward)) return false;
     long today = today();
 
-    if (today <= dayClaimed) return false;
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+      int rewardDay = reward.getDay();
+      if (!getClaimedDays().contains(rewardDay)) {
+        getClaimedDays().add(rewardDay);
+      }
+      this.day = getClaimedDays().size();
+    } else {
+      this.day++;
+    }
 
-    day++;
-    dayClaimed = today;
-    lastJoin = today;
+    this.dayClaimed = today;
+    this.lastJoin = today;
+    this.lastMonth = getCurrentYearMonth();
 
     markDirty();
     return true;
   }
 
   public boolean hasMissedDays() {
-    return today() - dayClaimed > 1;
+    int margin = (UltraCalendar.config != null) ? UltraCalendar.config.getResetMarginDays() : 3;
+    return today() - dayClaimed > margin;
+  }
+
+  private boolean checkMonthReset(@NotNull ServerPlayerEntity player) {
+    if (UltraCalendar.config == null || UltraCalendar.config.getMode() != CalendarMode.MONTH_DAY) {
+      return false;
+    }
+    String currentMonth = getCurrentYearMonth();
+    if (lastMonth != null && !lastMonth.equals(currentMonth)) {
+      if (UltraCalendar.config.isAutoReset()) {
+        reset(player, true);
+        return true;
+      }
+    }
+    this.lastMonth = currentMonth;
+    return false;
   }
 
   public void onJoin(@NotNull ServerPlayerEntity player) {
     fix();
 
+    if (checkMonthReset(player)) {
+      return;
+    }
+
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.STREAK) {
+      if (hasMissedDays() && UltraCalendar.config.isAutoReset()) {
+        reset(player, false);
+        return;
+      }
+
+      if (day >= UltraCalendar.config.maxDay()) {
+        reset(player, true);
+        return;
+      }
+    }
+
     long today = today();
-
-    if (hasMissedDays() && UltraCalendar.config.isAutoReset()) {
-      reset(player, false);
-      return;
-    }
-
-    if (day >= UltraCalendar.config.maxDay()) {
-      reset(player, true);
-      return;
-    }
-
     if (lastJoin != today) {
       lastJoin = today;
       dailyPlayTime = 0;
@@ -206,17 +317,18 @@ public class User implements Serializable {
       );
     }
 
-    day = 0;
-    dayClaimed = completed ? today : today - 1;
-    lastJoin = today;
-    dailyPlayTime = 0;
+    this.day = 0;
+    getClaimedDays().clear();
+    this.lastMonth = getCurrentYearMonth();
+    this.dayClaimed = completed ? today : today - 1;
+    this.lastJoin = today;
+    this.dailyPlayTime = 0;
 
     markDirty();
   }
 
   public void fix() {
     long today = today();
-
     boolean changed = false;
 
     if (day < 0) {
@@ -249,16 +361,28 @@ public class User implements Serializable {
       changed = true;
     }
 
-    if (hasMissedDays() && UltraCalendar.config.isAutoReset()) {
-      day = 0;
-      dayClaimed = today - 1;
-      dailyPlayTime = 0;
+    if (lastMonth == null || lastMonth.isBlank()) {
+      lastMonth = getCurrentYearMonth();
       changed = true;
     }
 
-    if (day > UltraCalendar.config.maxDay()) {
-      day = UltraCalendar.config.maxDay();
+    if (claimedDays == null) {
+      claimedDays = new ArrayList<>();
       changed = true;
+    }
+
+    if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.STREAK) {
+      if (hasMissedDays() && UltraCalendar.config.isAutoReset()) {
+        day = 0;
+        dayClaimed = today - 1;
+        dailyPlayTime = 0;
+        changed = true;
+      }
+
+      if (day > UltraCalendar.config.maxDay()) {
+        day = UltraCalendar.config.maxDay();
+        changed = true;
+      }
     }
 
     if (changed) {

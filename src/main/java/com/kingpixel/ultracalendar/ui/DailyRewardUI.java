@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 public class DailyRewardUI {
 
-  private record RewardStatus(boolean isClaimed, boolean isNextDay, boolean hasPlayTime) {}
+  private record RewardStatus(boolean isClaimed, boolean isAvailable, boolean hasPlayTime) {}
 
   private DailyRewardUI() {}
 
@@ -86,15 +86,15 @@ public class DailyRewardUI {
     Rewards reward
   ) {
     int day = reward.getDay();
-    boolean isClaimed = user.getDay() >= day;
-    boolean isNextDay = user.canClaim() && user.getDay() + 1 == day;
+    boolean isClaimed = user.isClaimed(day);
+    boolean isAvailable = user.isAvailableDay(day);
 
     long requiredSeconds = reward.getRequiredTime() != null ? reward.getRequiredTime().toSeconds() : 0;
     long currentPlayTime = reward.isDailyTime() ? user.getDailyPlayTime() : user.getTotalPlayTime();
     boolean hasPlayTime = currentPlayTime >= requiredSeconds;
 
-    RewardStatus status = new RewardStatus(isClaimed, isNextDay, hasPlayTime);
-    boolean canClaim = isNextDay && hasPlayTime;
+    RewardStatus status = new RewardStatus(isClaimed, isAvailable, hasPlayTime);
+    boolean canClaim = isAvailable && !isClaimed && hasPlayTime;
 
     ItemModel model = resolveItemModel(reward, isClaimed, canClaim);
     if (model == null) return null;
@@ -107,7 +107,7 @@ public class DailyRewardUI {
     String displayName = applyPlaceholders(rawName, placeholders);
 
     return model.getButton(
-      1,
+      Math.min(day, 64),
       displayName,
       lore,
       action -> UltraCalendar.ASYNC.runAsync(() ->
@@ -172,7 +172,7 @@ public class DailyRewardUI {
       return;
     }
 
-    if (!status.isNextDay()) {
+    if (!status.isAvailable()) {
       sendFeedback(clicker, UltraCalendar.language.getMessageVerySoon(), placeholders);
       return;
     }
@@ -182,7 +182,9 @@ public class DailyRewardUI {
       return;
     }
 
-    user.claim();
+    boolean claimed = user.claim(reward);
+    if (!claimed) return;
+
     user.markDirty();
     user.save();
 

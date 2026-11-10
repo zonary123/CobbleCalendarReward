@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2026-11-09
+
+### Added
+
+- **Configurable Calendar Modes (`CalendarMode`)**: Added `mode` setting in `config.json` supporting two calendar progression styles:
+  - `MONTH_DAY` (default): Rewards sync directly with the calendar month date (`1` to `31`), locking future days and allowing catch-up on missed past days within the configured margin window.
+  - `STREAK`: Rewards advance as a consecutive daily login streak.
+- **Monthly Claim History Tracking**: Added `claimedDays` persistence and month transition checks to cleanly track which days were claimed throughout the month and reset automatically on the 1st of each month.
+- **Built-in Documentation (WIKI.md)**: Added a comprehensive guide that is automatically extracted into your `config/ultracalendar/` directory when starting the server, detailing all player commands, admin controls, permissions, placeholders, and config settings.
+
+### Changed
+
+- **Dynamic Calendar UI Item Stacks**: Reward items in the calendar chest GUI now display an item stack count matching their respective day number (`1` to `31`, capped at `64`) instead of a static quantity of 1.
+- **Admin Commands Sync**: Updated `/calendar setday`, `/calendar claim`, and `/calendar info` to properly handle both `MONTH_DAY` and `STREAK` mode progression.
+- Updated CobbleUtils dependency to version 1.3.8.
+
+### Fixed
+
+- **Calendar Locked at Day 1**: Fixed calendar progression evaluating only an incremental counter without referencing the real month day, which kept players stuck on Day 1.
+- **Streak Margin Reset Bug**: Fixed player streak resetting back to 0 whenever a single day was missed, now properly honoring the `resetMarginDays` forgiveness window.
+- **Empty Default Rewards Map Initialization**: Fixed `rewardsByDay` remaining uninitialized in memory when default reward files are generated on initial server startup.
+
 ## [2.0.3] - 2026-10-16
 
 ### Added

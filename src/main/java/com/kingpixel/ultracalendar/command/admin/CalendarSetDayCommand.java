@@ -3,6 +3,7 @@ package com.kingpixel.ultracalendar.command.admin;
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
 import com.kingpixel.ultracalendar.command.CommandTree;
+import com.kingpixel.ultracalendar.models.CalendarMode;
 import com.kingpixel.ultracalendar.models.User;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -78,9 +79,17 @@ public class CalendarSetDayCommand {
       if (user == null) return;
 
       long today = User.getTodayEpoch();
-      user.setDay(Math.max(day, 0));
+      int normalizedDay = Math.max(day, 0);
+      user.setDay(normalizedDay);
       user.setLastJoin(today);
       user.setDayClaimed(today - 1);
+
+      if (UltraCalendar.config != null && UltraCalendar.config.getMode() == CalendarMode.MONTH_DAY) {
+        user.getClaimedDays().clear();
+        for (int i = 1; i <= normalizedDay; i++) {
+          user.getClaimedDays().add(i);
+        }
+      }
 
       user.markDirty();
       user.fix();
