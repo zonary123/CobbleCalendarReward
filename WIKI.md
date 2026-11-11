@@ -8,6 +8,7 @@ Welcome to the **UltraCalendar** (CobbleCalendarRewards) documentation! UltraCal
 1. [Overview & Core Architecture](#-overview--core-architecture)
 2. [Commands & Permissions](#-commands--permissions)
 3. [Core Mechanics & Calendar Lifecycle](#-core-mechanics--calendar-lifecycle)
+   - [Calendar Operating Modes (MONTH_DAY vs STREAK)](#calendar-operating-modes-month_day-vs-streak)
    - [Triple-State Button Display](#triple-state-button-display)
    - [Active Playtime Gating](#active-playtime-gating)
    - [Timezones & Monthly Auto-Reset](#timezones--monthly-auto-reset)
@@ -46,26 +47,57 @@ Base command aliases (configurable in `config.json`): `/calendar`, `/calendarrew
 | :--- | :--- | :--- |
 | `/calendar` | *None (All Players)* | Opens the monthly calendar interface showing all 31 days and their live statuses. |
 | `/calendarreward` | *None (All Players)* | Alias to open the calendar interface. |
+| `/calendar open` | *None (All Players)* | Subcommand alias to open the calendar interface. |
+| `/calendar gui` | *None (All Players)* | Subcommand alias to open the calendar interface. |
+| `/calendar help` | *None (All Players)* | Displays all available calendar commands and usage syntax. |
 
 ### Staff & Admin Commands
+Admin subcommands can be executed directly (e.g. `/calendar reset`) or under the grouped administration namespace `/calendar admin <subcommand>`.
+
 | Command | Arguments | Permission Node | Default Level | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `/calendar reload` | *None* | `ultracalendar.admin` | Level 2 (OP) | Hot-reloads configuration files, language strings, and all 31 day reward definitions without restarting the server. |
-| `/calendar other <player>` | `<player>` | `ultracalendar.admin` | Level 2 (OP) | Opens the calendar interface on behalf of another player to inspect their progress. |
-| `/calendar restart <player>` | `<player>` | `ultracalendar.admin` | Level 2 (OP) | Resets the specified player's monthly calendar claims and playtime tracker back to Day 1. |
+| `/calendar reload` | *None* | `ultracalendarreward.reload` | Level 2 (OP) | Hot-reloads configuration files, language strings, and all daily reward definitions without restarting the server. |
+| `/calendar reset [player]` | `[player]` | `ultracalendarreward.reset` | Level 2 (OP) | Resets the specified player's (or sender's) calendar progress and daily playtime tracker. |
+| `/calendar resetall` | *None* | `ultracalendarreward.resetall` | Level 2 (OP) | Resets calendar progress and daily playtime for all currently online players simultaneously. |
+| `/calendar setday <player> <day>` | `<player> <day>` | `ultracalendarreward.setday` | Level 2 (OP) | Sets a player's calendar progress to a specific day (`0` to `maxDay`). |
+| `/calendar settime <player> <seconds>` | `<player> <seconds>` | `ultracalendarreward.settime` | Level 2 (OP) | Sets a player's accumulated daily playtime in seconds. |
+| `/calendar addtime <player> <seconds>` | `<player> <seconds>` | `ultracalendarreward.addtime` | Level 2 (OP) | Adds bonus active playtime in seconds to a player's daily count. |
+| `/calendar claim <player> [day]` | `<player> [day]` | `ultracalendarreward.claim` | Level 2 (OP) | Force claims a reward for a player without consuming their daily eligibility. |
+| `/calendar info <player>` | `<player>` | `ultracalendarreward.info` | Level 2 (OP) | Inspects a player's current day, today's claim status, daily/total playtime, and eligibility. |
+| `/calendar other <player>` | `<player>` | `ultracalendarreward.other` | Level 2 (OP) | Opens the calendar menu on behalf of another player to view their current UI. |
+| `/calendar save` | *None* | `ultracalendarreward.save` | Level 2 (OP) | Flushes all dirty in-memory player data and saves immediately to the database. |
 
 ---
 
 ## ⚡ Core Mechanics & Calendar Lifecycle
 
+### Calendar Operating Modes (MONTH_DAY vs STREAK)
+UltraCalendar supports two architectural game modes configured via `"mode"` in `config.json`:
+
+1. **`MONTH_DAY` (Default - Real Calendar Date)**:
+   - Each slot is directly tied to the real day of the month (`1` to `31`), calculated from the server's configured timezone (`LocalDate.now(zone).getDayOfMonth()`).
+   - **Future Days**: Days ahead of today's date remain locked in the `notClaimed` state.
+   - **Today's Day**: Unlocks as `canClaim` once today's active playtime requirement is reached.
+   - **Past Missed Days (Catchup)**: Unclaimed days in the past remain claimable if they fall within the configured catchup margin window (`resetMarginDays`). If missed beyond that margin, they lock permanently for the remainder of the month.
+   - **Monthly Rollover**: On the 1st of each month, all player claimed states reset automatically if `autoReset: true`.
+
+2. **`STREAK` (Consecutive Login Rewards)**:
+   - Evaluates rewards as a sequential daily login streak (Day 1, Day 2, Day 3...).
+   - Each claim unlocks the subsequent day.
+   - If a player misses more days than `"resetMarginDays"` (`today - dayClaimed > resetMarginDays`), their streak resets back to Day 1.
+   - When a player claims the final configured reward (`maxDay`), the streak completes and resets.
+
 ### Triple-State Button Display
 Every day button in the monthly grid dynamically renders one of **three distinct visual states**:
-1. **`canClaim`**: Today's reward is unlocked! The player has logged in on the correct day and fulfilled the required playtime. Clicking it claims the reward.
+1. **`canClaim`**: Today's reward is unlocked! The player has logged in on the correct day (or a valid catchup day) and fulfilled the required playtime. Clicking it claims the reward.
 2. **`claimed`**: The player has already claimed this day's reward earlier in the month.
 3. **`notClaimed`**: The reward is currently inaccessible. This represents either:
    - A **future day** that hasn't arrived yet on the calendar.
    - **Today's reward**, but the player hasn't finished their required active playtime yet.
    - A **past day** that was missed beyond the configured catchup margin.
+
+> [!NOTE]
+> In the calendar menu, each reward button renders an ItemStack count matching the day number (`1` to `31`, capped at `64`), giving players instant visual clarity of day progression in the chest inventory.
 
 ### Active Playtime Gating
 UltraCalendar supports two layers of playtime requirements:
@@ -115,6 +147,7 @@ config/ultracalendar/
 {
   "debug": false,
   "active": true,
+  "mode": "MONTH_DAY",
   "autoReset": true,
   "autoPlace": false,
   "sendMessageReset": true,
@@ -143,7 +176,8 @@ config/ultracalendar/
 | :--- | :--- | :--- | :--- |
 | `debug` | `Boolean` | `false` | Enable verbose debug logging in the server console. |
 | `active` | `Boolean` | `true` | Master switch to enable or disable the calendar system. |
-| `autoReset` | `Boolean` | `true` | Automatically resets all player calendar progress on the 1st day of every month. |
+| `mode` | `String` | `"MONTH_DAY"` | Progression mode: `"MONTH_DAY"` (day of month 1-31 with catchup) or `"STREAK"` (consecutive daily login streak). |
+| `autoReset` | `Boolean` | `true` | Automatically resets all player calendar progress on the 1st day of every month (or on lost streak in STREAK mode). |
 | `autoPlace` | `Boolean` | `false` | Automatically calculates sequential GUI slots for rewards instead of relying on manual `slot` numbers. |
 | `sendMessageReset` | `Boolean` | `true` | Broadcast server-wide announcement when the calendar resets at the start of the month. |
 | `sendPlayTimeAlertOnJoin` | `Boolean` | `true` | Sends a chat message when a player joins informing them how many minutes of playtime they need today. |
@@ -412,9 +446,10 @@ The ultimate month-end reward awarding Master Balls, legendary items, and server
 
 ## 💾 Database & Persistence Engine
 
-UltraCalendar supports two data storage backends:
-1. **JSON (`type: "JSON"`)**: File-based storage saved in `config/ultracalendar/data/users/<uuid>.json`.
-2. **MongoDB (`type: "MONGODB"`)**: Centralized high-performance NoSQL database for cross-server networks where player calendar claims and active playtime sync across all proxy servers.
+UltraCalendar supports three data storage backends:
+1. **JSON (`type: "JSON"`)**: File-based storage saved in `config/ultracalendar/data/<uuid>.json`.
+2. **SQL (`type: "SQLITE" | "MYSQL" | "MARIADB" | "H2"`)**: Relational database storage powered by CobbleUtils' SQLService with automatic schema creation and connection pooling.
+3. **MongoDB (`type: "MONGODB"`)**: Centralized high-performance NoSQL database for cross-server networks where player calendar claims and active playtime sync across all proxy servers.
 
 ---
 
@@ -426,7 +461,7 @@ Check their active daily playtime. If `"defaultPlayTime"` is `"15m"`, the player
 ### Can I reset a player's calendar to test from Day 1?
 Yes! Execute:
 ```bash
-/calendar restart <player>
+/calendar reset <player>
 ```
 
 ### What happens in months with fewer than 31 days (like February)?

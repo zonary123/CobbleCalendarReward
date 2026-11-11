@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.5] - 2026-11-11
+
+### Added
+
+- **Comprehensive Documentation Expansion (`WIKI.md`)**:
+  - Detailed architecture guide for `CalendarMode` (`MONTH_DAY` vs `STREAK`) explaining day locking, catchup margin rules, and monthly auto-reset mechanics.
+  - Documented SQL database integration (`SQLite`, `MySQL`, `MariaDB`, `H2`) alongside JSON and MongoDB.
+  - Added complete command and permission matrix for all administration subcommands (`reset`, `resetall`, `setday`, `settime`, `addtime`, `claim`, `info`, `other`, `save`, `reload`) under `ultracalendarreward.*` and the `/calendar admin` grouped namespace.
+  - Added player command aliases (`/calendar open`, `/calendar gui`) and `/calendar help`.
+  - Updated global configuration documentation with the `mode` parameter.
+
 ## [2.0.4] - 2026-11-09
 
 ### Added
