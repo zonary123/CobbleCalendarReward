@@ -2,8 +2,8 @@ package com.kingpixel.ultracalendar.command.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
+import com.kingpixel.ultracalendar.api.UltraCalendarApi;
 import com.kingpixel.ultracalendar.command.CommandTree;
-import com.kingpixel.ultracalendar.ui.DailyRewardUI;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
@@ -34,7 +34,7 @@ public class CalendarOtherCommand {
                 CommandTree.sendMessage(context.getSource(), UltraCalendar.language.getMessageAdminPlayerNotFound());
                 return 0;
               }
-              DailyRewardUI.open(player);
+              UltraCalendarApi.openCalendarMenu(player);
               return 1;
             })
         )

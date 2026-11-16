@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-16
+
+### Added
+
+- **Custom Menu & Rotom Phone Support**: Added a pluggable menu system (`CalendarMenuProvider` & `CalendarMenuRegistry`) allowing companion mods such as Rotom Phone, custom graphical screens, or web dashboards to replace default chest GUIs with custom interfaces.
+- **Headless Action & Context Services**: Added headless services (`CalendarActionService`, `CalendarContextService`) that let companion mods claim daily rewards, query streaks and playtime, inspect upcoming calendar days, and manage player progress without opening chest menus.
+- **Developer API & Artifacts**: Published a dedicated `-api.jar` artifact containing all API interfaces, application services, and models for third-party modders and server developers.
+
+### Changed
+
+- Command handlers and menu dispatches now route through the unified `UltraCalendarApi` and menu registry.
+- Automated release workflow now publishes all release artifacts including developer API jars to Discord and Modrinth.
+
 ## [2.0.5] - 2026-11-11
 
 ### Added

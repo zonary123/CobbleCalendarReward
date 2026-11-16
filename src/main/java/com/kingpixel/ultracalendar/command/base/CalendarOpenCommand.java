@@ -2,7 +2,7 @@ package com.kingpixel.ultracalendar.command.base;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultracalendar.UltraCalendar;
-import com.kingpixel.ultracalendar.ui.DailyRewardUI;
+import com.kingpixel.ultracalendar.api.UltraCalendarApi;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -39,7 +39,7 @@ public class CalendarOpenCommand {
     if (!UltraCalendar.config.isActive()) return 0;
     ServerPlayerEntity player = source.getPlayer();
     if (player == null) return 0;
-    DailyRewardUI.open(player);
+    UltraCalendarApi.openCalendarMenu(player);
     return 1;
   }
 }
